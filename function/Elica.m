@@ -160,7 +160,7 @@ classdef Elica
         % -----------------------------------------------------------------
         arguments
             obj
-            J      (:,1){mustBePositive,mustBeFinite}
+            J      (:,1){mustBeNonnegative,mustBeFinite}
             alpha0 (1,1){mustBeReal,mustBeFinite}=0
             alpha1 (1,1){mustBeReal,mustBeFinite}=10*pi/180; 
             options = BEMTset();
@@ -222,7 +222,7 @@ classdef Elica
         % -----------------------------------------------------------------
             arguments
                 obj
-                J  {mustBePositive,mustBeFinite}
+                J  {mustBeNonnegative,mustBeFinite}
                 T  {mustBePositive,mustBeFinite}
                 Cl {mustBeReal,mustBeFinite}
                 alpha {mustBeReal,mustBeFinite}
@@ -235,8 +235,12 @@ classdef Elica
             A=pi*obj.R^2;
             CT= T/(obj.rho*obj.n^2*obj.D^4);
             % X=el.omega*el.R/V_inf*el.r_bar;
-            a=-0.5*(1-sqrt(1+2*T/(obj.rho*V_inf^2*A)));
-            w0=a*V_inf;
+            if V_inf < 1e-4
+                w0=sqrt(T/(2*obj.rho*A));
+            else
+                a=-0.5*(1-sqrt(1+2*T/(obj.rho*V_inf^2*A)));
+                w0=a*V_inf;        
+            end
             f0=obj.funcDes(w0,V_inf,Cl,alpha,CT,options);
             if abs(f0)>options.toll
                 w01=1.5*w0;
@@ -253,13 +257,18 @@ classdef Elica
             [~,obj]=obj.funcDes(w01,V_inf,Cl,alpha,CT,options);
         end
         function [f,obj]=funcDes(obj,w0,V_inf,Cl_id,alpha_id,CT,options)
-            
-            Chi=obj.omega*obj.r_bar*obj.R/V_inf;
             phi = atan((V_inf+w0)*(obj.omega*obj.r_bar*obj.R).^-1);
-            a   = w0/V_inf*Chi.^2.*((1+w0/V_inf)^2+Chi.^2).^-1;
-            ap  = w0/V_inf*(1+w0/V_inf)^2*((1+w0/V_inf)^2+Chi.^2).^-1;
-            Ve  =sqrt((obj.omega*obj.r_bar*obj.R).^2.*(1-ap).^2+V_inf^2*(1+a).^2);
-
+            if V_inf< 1e-4
+                OR_wo=obj.omega*obj.r_bar*obj.R/w0;
+                w=w0*(1+OR_wo.^-2).^-1;
+                ap=1*(1+OR_wo.^2).^-1;
+                Ve  =sqrt((obj.omega*obj.r_bar*obj.R).^2.*(1-ap).^2+w.^2);
+            else
+                Chi=obj.omega*obj.r_bar*obj.R/V_inf;
+                a   = w0/V_inf*Chi.^2.*((1+w0/V_inf)^2+Chi.^2).^-1;
+                ap  = w0/V_inf*(1+w0/V_inf)^2*((1+w0/V_inf)^2+Chi.^2).^-1;
+                Ve  =sqrt((obj.omega*obj.r_bar*obj.R).^2.*(1-ap).^2+V_inf^2*(1+a).^2);
+            end
             Gamma = obj.omega*(obj.r_bar*obj.R).^2.*(4*pi*obj.r_bar.^2.*ap)...
                 .*obj.F_(V_inf/obj.n/obj.D);
             obj.sigma = 1/(pi*obj.R)*(Ve.*obj.r_bar.*Cl_id).^-1.*Gamma;
@@ -277,6 +286,9 @@ classdef Elica
             % - F                          Prandtl correction factor
             %                               [obj.n_r,1]
             F=2/pi*acos(exp(0.5*obj.N/lambda*(obj.r_bar-1)));
+            if lambda ==0
+                F(isnan(F))=1;
+            end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% PLOTTING
