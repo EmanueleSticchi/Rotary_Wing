@@ -179,9 +179,9 @@ classdef Elica
                 end
                 s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),0,1);
                 if isequal(options.Hub_correction,'on')
-                    s.DCT = -pi/8*(obj.r_bar(1)/obj.R)^2*...
-                            J(jdx)^2*options.Cd_hub;
-                    s.CT(jdx,1) = s.CT(jdx,1) + DCT;
+                    s.DCT(jdx,1) = -pi/8*(obj.r_bar(1)/obj.R)^2*...
+                                J(jdx)^2*options.Cd_hub;
+                    s.CT(jdx,1)  = s.CT(jdx,1) + s.DCT(jdx,1);
                 end
                 s.CQ(jdx,1)=obj.simpsons(s.dCq_dr_bar(jdx,:),0,1);
                 s.CP(jdx,1)=2*pi*s.CQ(jdx,1);
