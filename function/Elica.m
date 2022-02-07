@@ -99,18 +99,7 @@ classdef Elica
 
             ap = kap/(1+kap);
             a  = ka/(1-ka);
-%             if isequal(options.P_correction,'on')
-%                %a=a*(2/pi*acos(exp(0.5*obj.N/tan(phi)*(obj.r_bar(idx)-1))));
-%                 % qui chiedi cosa devi fare quando acos diviene complex
-%                 % accade perchè tan(phi) diviene negativo (perciò dovrebbe
-%                 % andarci lambda, ma quale lambda ?) 
-% %                 normreslam=1;
-% %                 while normreslam >1e-3
-% %                     lam=pi*obj.r_bar(idx)*(1-ap)*tan(phi)/(1+a);
-% %                     a=a*(2/pi*acos(exp(0.5*obj.N/lam*(obj.r_bar(idx)-1))));
-% %                     normreslam=abs(lam-pi*obj.r_bar(idx)*(1-ap)*tan(phi)/(1+a));
-% %                 end
-%             end 
+            
             % calcolo del rapporto di avanzamento
             J_=pi*obj.r_bar(idx)*(1-ap)*tan(phi)/(1+a);
             % funzione da annullare
@@ -189,6 +178,11 @@ classdef Elica
                     s.dCp_dr_bar(jdx,:)=s.dCp_dr_bar(jdx,:)'.*obj.F_(J(jdx));
                 end
                 s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),0,1);
+                if isequal(options.Hub_correction,'on')
+                    s.DCT = -pi/8*(obj.r_bar(1)/obj.R)^2*...
+                            J(jdx)^2*options.Cd_hub;
+                    s.CT(jdx,1) = s.CT(jdx,1) + DCT;
+                end
                 s.CQ(jdx,1)=obj.simpsons(s.dCq_dr_bar(jdx,:),0,1);
                 s.CP(jdx,1)=2*pi*s.CQ(jdx,1);
                 s.eta(jdx,1)=s.CT(jdx,1)/s.CP(jdx,1)*J(jdx);
