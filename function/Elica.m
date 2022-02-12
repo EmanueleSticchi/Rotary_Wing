@@ -14,7 +14,8 @@ classdef Elica
     % ---------------------------------------------------------------------
         RPM   {mustBePositive, mustBeFinite}       % Giri al minuto
         n     {mustBePositive, mustBeFinite}       % Giri al secondo
-        omega {mustBePositive, mustBeFinite}%Velocità di rotazione, [rad/s]                                
+        omega {mustBePositive, mustBeFinite}%Velocità di rotazione, [rad/s]
+        h {mustBeNonnegative, mustBeFinite} = 0 % Quota di funzionamento
         rho   {mustBePositive, mustBeFinite}=1.23  % Densità dell'aria 
     % ---------------------------------------------------------------------
     % Aerodinamica
@@ -76,6 +77,14 @@ classdef Elica
             obj.Cl=@(alpha) interp1(valpha,vCl,alpha);
             obj.Cd=@(alpha) interp1(valpha,vCd,alpha);
         end
+        % -----------------------------------------------------------------
+        % Ambient conditions
+        % -----------------------------------------------------------------
+        function obj = altitude(obj,h)
+            obj.h=h;
+            [obj.temp, obj.sound_vel, obj.press, obj.rho] = atmosisa(obj.h);
+        end
+        
         % ----------------------------------------------------------------
         %% Teoria dell'elemento di pala generale
         % ----------------------------------------------------------------
@@ -177,13 +186,13 @@ classdef Elica
                     s.dCq_dr_bar(jdx,:)=s.dCq_dr_bar(jdx,:)'.*obj.F_(J(jdx));
                     s.dCp_dr_bar(jdx,:)=s.dCp_dr_bar(jdx,:)'.*obj.F_(J(jdx));
                 end
-                s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),0,1);
+                s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),obj.r_bar(1),obj.r_bar(end));
                 if isequal(options.Hub_correction,'on')
                     s.DCT(jdx,1) = -pi/8*(obj.r_bar(1)/obj.R)^2*...
                                 J(jdx)^2*options.Cd_hub;
                     s.CT(jdx,1)  = s.CT(jdx,1) + s.DCT(jdx,1);
                 end
-                s.CQ(jdx,1)=obj.simpsons(s.dCq_dr_bar(jdx,:),0,1);
+                s.CQ(jdx,1)=obj.simpsons(s.dCq_dr_bar(jdx,:),obj.r_bar(1),obj.r_bar(end));
                 s.CP(jdx,1)=2*pi*s.CQ(jdx,1);
                 s.eta(jdx,1)=s.CT(jdx,1)/s.CP(jdx,1)*J(jdx);
             end
