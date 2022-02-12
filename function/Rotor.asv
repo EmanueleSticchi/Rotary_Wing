@@ -8,8 +8,7 @@ classdef Rotor
         theta (:,1){mustBeReal, mustBeFinite}        % pitch setting, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite} % Rotor chord, [m]
         c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m]
-        sigma (:,1){mustBeNonnegative, mustBeFinite} % Solidity, [\]
-        sigma_mean{mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
+        sigma {mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
         I     {mustBePositive, mustBeFinite}         % Moment of inertia, [kgm^2]
         gamma {mustBePositive, mustBeFinite}         % Lock number
         % ---------------------------------------------------------------------
@@ -41,7 +40,7 @@ classdef Rotor
         r_bar (:,1) {mustBeInRange(r_bar,0,1,'exclude-lower')} %exclusive
         n_r
         %
-        n_analisi = 0
+        n_analisi_salita = 0
         n_analisi_articulated = 0
         n_analisi_autorot = 0
         % ambient conditons
@@ -54,7 +53,7 @@ classdef Rotor
         A_D   {mustBePositive, mustBeFinite}         % Rotor area, [m^2]
 
         % storage variables for analysis and design
-        Analisi
+        Analisi_salita
         Analisi_articulated;
         Analisi_autorot;
         Design
@@ -74,7 +73,7 @@ classdef Rotor
         
         % mass properties
         function obj = mass_prop(obj,valIN,val)
-            obj = obj.derived_properties;
+            obj = obj.derived_properties();
             switch valIN
                 case 'G'
                     obj.gamma = val;
@@ -92,11 +91,10 @@ classdef Rotor
         % definition of the main properties. The function needs to be
         % called only once. The unction computes any derived property.
         function obj = derived_properties(obj)
-            obj.sigma = obj.N/pi*obj.c.*obj.r_bar.^-1*obj.R;
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
             obj.c_mean= mean(obj.c);
-            obj.sigma_mean = ( obj.c_mean*obj.N )/( pi*obj.R );
+            obj.sigma = ( obj.c_mean*obj.N )/( pi*obj.R );
         end
 
         % Compute rotational velocity. This function let the user decide
@@ -107,6 +105,12 @@ classdef Rotor
         % the flag. While the flag is equal to 1 there's no need to give
         % the function other inputs.
         function obj = rot_vel(obj,valIN,val,flag_external_tip_speed)
+            arguments
+                obj
+                valIN
+                val
+                flag_external_tip_speed = 0
+            end
             if flag_external_tip_speed == 1
                 obj.omega = obj.sound_vel*obj.Mach_limit/obj.R;
                 obj.n     = obj.omega/(2*pi);
@@ -134,7 +138,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% BEMT salita assiale
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = BEMT_rotore(obj,V_inf,options)
+        function obj = BEMT_salita(obj,V_inf,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare le prestazioni del rotore
             % una volta fissata la velocità di salita, ovvero il parametro
@@ -168,18 +172,19 @@ classdef Rotor
             for i=1:length(V_inf)
                 mu(i)        = V_inf(i)/( obj.R*obj.omega );
                 for j=1:obj.n_r   
-                    B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma(j) )/8;
-                    B2(i,j)      = B(i,j).*B(i,j);
-                    C(i,j)       = obj.r_bar(j).*obj.Cl_alpha.*obj.sigma(j)/8.*( obj.theta(j) - (mu(i)./obj.r_bar(j)) );
+                    B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma )/8;
+                    B2(i,j)      = B(i,j)*B(i,j);
+                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma/8*( obj.theta(j) - (mu(i)/obj.r_bar(j)) );
                     s.lam_i(i,j) = 0.5*( sqrt( B2(i,j) + 4*C(i,j) ) - B(i,j) );
                     % inflow angle
                     s.phi(i,j)   = ( mu(i) + s.lam_i(i,j) )./obj.r_bar(j);
                     % angle of attack
                     s.alpha(i,j) = obj.theta(j) - s.phi(i,j);
-                    s.Cl(i,j)    = obj.Cl_alpha*s.alpha(i,j);
+                    s.Cl(i,j)    = obj.Cl(s.alpha(i,j));
+                    s.Cd(i,j)    = obj.Cd(s.alpha(i,j));
                     % thrust and torque distributions
-                    s.dTc(i,j)   = 0.5.*obj.sigma(j).*s.Cl(i,j).*(obj.r_bar(j).^2);
-                    s.dQc(i,j)   = 0.5.*obj.sigma(j).*(s.Cl(i,j).*s.phi(i,j) + obj.Cd_mean).*(obj.r_bar(j).^3);
+                    s.dTc(i,j)   = 0.5*obj.sigma*s.Cl(i,j)*(obj.r_bar(j)^2);
+                    s.dQc(i,j)   = 0.5*obj.sigma*(s.Cl(i,j)*s.phi(i,j) + s.Cd(i,j))*(obj.r_bar(j)^3);
                 end
 
                 % thrust and torque
@@ -187,8 +192,9 @@ classdef Rotor
                 s.Qc(i) = obj.simpsons(s.dQc(i,:),obj.r_bar(1),obj.r_bar(end));
 
             end
-            obj.n_analisi                = obj.n_analisi+1;
-            obj.Analisi{obj.n_analisi,1} = s;
+            s.mu = mu;
+            obj.n_analisi_salita = obj.n_analisi_salita+1;
+            obj.Analisi_salita{obj.n_analisi_salita,1} = s;
         end
 
         function I = simpsons(obj,f,a,b)
@@ -196,9 +202,9 @@ classdef Rotor
             I= h/3*(f(1)+2*sum(f(3:2:end-2))+4*sum(f(2:2:end-1))+f(end));
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% Analisi del rotore articolato (coefficienti di flappeggio)
+        %% BEMT volo traslato per rotore non rigido (articolato)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = articulated_rotor(obj,V_inf_Vec,chi,f,W,theta_t)
+        function obj = BEMT_articulated(obj,V_inf_Vec,chi,f,W,theta_t,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare i coefficienti adimensionali di spinta,
             % resistenza, forza laterale, coppia e potenza, gli angoli di
@@ -219,10 +225,11 @@ classdef Rotor
             % - V_inf[m/s]      : velocità di avanzamento del rotore
             % - Chi  [rad]      : angolo di salita del rotore
             % - f    [visc.area]: prodotto dell'area di riferimento per la
-            % resistenza dell'intero elicottero.
+            %                       resistenza dell'intero elicottero.
             % - W    [N]        : peso dell'elicottero
-            % - theta_w [rad]   : coefficiente angolare della retta che
-            % definisce lo svergolamento
+            % - theta_t [rad]   : coefficiente angolare della retta che
+            %                       definisce lo svergolamento
+            % - options         : Analisys options (see BEMTset_rotor)
             arguments
                 obj
                 V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
@@ -230,50 +237,54 @@ classdef Rotor
                 f         {mustBePositive, mustBeFinite}
                 W         {mustBePositive, mustBeFinite}
                 theta_t   {mustBeFinite}
+                options = BEMTset_rotor();
             end
-            if chi > 0.1745
-                warning('The input value for the climb angle may not be small enough!')
-            end
-
+%             if chi > 0.1745
+%                 warning('The input value for the climb angle may not be small enough!')
+%             end
             alpha_TPP     = 0;
-            toll          = 1e-5;
             iter          = 0;
             s_art.Tc      = W/( obj.rho*(obj.omega*obj.R)^2*obj.A_D );
             for i = 1:length(V_inf_Vec)
                 V_inf     = V_inf_Vec(i);
-                D_fs      = 0.5*V_inf.^2*f;
+                D_fs      = 0.5*obj.rho*V_inf.^2*f;
                 lam_c     = V_inf*sin(chi)/( obj.omega*obj.R );
-                iter_cond = 1;
-                while iter_cond > toll
+                iter_cond = 1; % residuo
+                lam=0;         % valore di primo tentativo
+                while iter_cond > options.toll
 
-                    mu = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
-                    if mu <= 0.1    % mu < 0.1 || mu = 0.1
-                        if iter == 0% during the first iteration lam it's not defined,
-                            % we use an approximated value for the induction. In this case
-                            % the induction is computed with the hovering formula since mu
-                            % < 0.1. It is important to notice that this value it's used
-                            % only for the first iteration.
-                            %               lam_i = sqrt(W/2*rho*A_D)/OmegaR;
-                            lam_i = sqrt(-V_inf^2/2 + sqrt( V_inf^4/4 + (W/(2*obj.rho*obj.A_D))^2 ))/(obj.omega*obj.R);
-                        else
-                            lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-                        end
+                    mu    = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
+                    lam_i = s_art.Tc/( 2*sqrt(mu^2 + lam^2) );
+                    if is
+                        lam_i = sqrt(W/2*rho*A_D)/OmegaR;
                     end
-
-                    if mu > 0.1     % mu > 0.1
-                        if iter == 0% during the first iteration lam it's not defined,
-                            % we use an approximated value for the induction.
-                            lam_i = s_art.Tc/( 2*mu );
-                        else
-                            lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-                        end
-                    end
+%                     if mu <= 0.1    % mu < 0.1 || mu = 0.1
+%                         if iter == 0% during the first iteration lam it's not defined,
+%                             % we use an approximated value for the induction. In this case
+%                             % the induction is computed with the hovering formula since mu
+%                             % < 0.1. It is important to notice that this value it's used
+%                             % only for the first iteration.
+%                             %               lam_i = sqrt(W/2*rho*A_D)/OmegaR;
+%                             lam_i = sqrt(-V_inf^2/2 + sqrt( V_inf^4/4 + (W/(2*obj.rho*obj.A_D))^2 ))/(obj.omega*obj.R);
+%                         else
+%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
+%                         end
+%                     end
+% 
+%                     if mu > 0.1     % mu > 0.1
+%                         if iter == 0% during the first iteration lam it's not defined,
+%                             % we use an approximated value for the induction.
+%                             lam_i = s_art.Tc/( 2*mu );
+%                         else
+%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
+%                         end
+%                     end
 
                     lam      = mu*tan(alpha_TPP) + lam_i;
-                    theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma_mean*obj.Cl_alpha) ...
+                    theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma*obj.Cl_alpha) ...
                         - theta_t/4 - theta_t*( mu.^2 )/4 + 0.5*lam );
 
-                    Pc0      = obj.Cd_mean*obj.sigma_mean*( 1 + 3*mu.^2 )/8;
+                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + 3*mu.^2 )/8;
                     Pc       = lam_i*s_art.Tc + lam_c*s_art.Tc + mu*( D_fs/W )*s_art.Tc + Pc0;
 
                     % flap coeffs.
@@ -285,15 +296,15 @@ classdef Rotor
 
                     % drag and side force coeffs.
                     % induced drag coeff.
-                    Hc_i     = obj.sigma_mean*obj.Cl_alpha*0.5*( theta0*( -beta1c/3 + 0.5*mu*lam ) +...
+                    Hc_i     = obj.sigma*obj.Cl_alpha*0.5*( theta0*( -beta1c/3 + 0.5*mu*lam ) +...
                         theta_t*( -beta1c/4 + mu*lam/4 ) + 3*lam*beta1c/4 + beta0*beta1s/6 + ...
                         mu*( beta0^2 + beta1c^2 )/4 );
                     % parasite drag coeff.
-                    Hc_0     = obj.sigma_mean*obj.Cd_mean*mu/4;
+                    Hc_0     = obj.sigma*obj.Cd_mean*mu/4;
                     % total drag coeff.
                     Hc       = Hc_i + Hc_0;
                     % total lateral force coeff.
-                    Yc       = -obj.sigma_mean*obj.Cl_alpha*0.5*( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
+                    Yc       = -obj.sigma*obj.Cl_alpha*0.5*( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
                         theta_t*( 0.5*mu*beta0 + beta1s*( 1 + mu^2 )/4 ) - 3*lam*beta1s/4 + beta0*beta1c*( 1/6 - mu^2 ) - ...
                         0.5*3*mu*lam*beta0 - beta1c*beta1s/4);
                     % modified lam let us compute the variation of lam of the previous

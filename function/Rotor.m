@@ -8,7 +8,7 @@ classdef Rotor
         theta (:,1){mustBeReal, mustBeFinite}        % pitch setting, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite} % Rotor chord, [m]
         c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m]
-        sigma{mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
+        sigma {mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
         I     {mustBePositive, mustBeFinite}         % Moment of inertia, [kgm^2]
         gamma {mustBePositive, mustBeFinite}         % Lock number
         % ---------------------------------------------------------------------
@@ -73,7 +73,7 @@ classdef Rotor
         
         % mass properties
         function obj = mass_prop(obj,valIN,val)
-            obj = obj.derived_properties;
+            obj = obj.derived_properties();
             switch valIN
                 case 'G'
                     obj.gamma = val;
@@ -202,9 +202,9 @@ classdef Rotor
             I= h/3*(f(1)+2*sum(f(3:2:end-2))+4*sum(f(2:2:end-1))+f(end));
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% Analisi del rotore articolato (coefficienti di flappeggio)
+        %% BEMT volo traslato per rotore non rigido (articolato)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = articulated_rotor(obj,V_inf_Vec,chi,f,W,theta_t)
+        function obj = BEMT_articulated(obj,V_inf_Vec,chi,f,W,theta_t,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare i coefficienti adimensionali di spinta,
             % resistenza, forza laterale, coppia e potenza, gli angoli di
@@ -225,10 +225,11 @@ classdef Rotor
             % - V_inf[m/s]      : velocità di avanzamento del rotore
             % - Chi  [rad]      : angolo di salita del rotore
             % - f    [visc.area]: prodotto dell'area di riferimento per la
-            % resistenza dell'intero elicottero.
+            %                       resistenza dell'intero elicottero.
             % - W    [N]        : peso dell'elicottero
-            % - theta_w [rad]   : coefficiente angolare della retta che
-            % definisce lo svergolamento
+            % - theta_t [rad]   : coefficiente angolare della retta che
+            %                       definisce lo svergolamento
+            % - options         : Analisys options (see BEMTset_rotor)
             arguments
                 obj
                 V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
@@ -236,44 +237,50 @@ classdef Rotor
                 f         {mustBePositive, mustBeFinite}
                 W         {mustBePositive, mustBeFinite}
                 theta_t   {mustBeFinite}
+                options = BEMTset_rotor();
             end
-            if chi > 0.1745
-                warning('The input value for the climb angle may not be small enough!')
-            end
-
+%             if chi > 0.1745
+%                 warning('The input value for the climb angle may not be small enough!')
+%             end
             alpha_TPP     = 0;
-            toll          = 1e-5;
             iter          = 0;
             s_art.Tc      = W/( obj.rho*(obj.omega*obj.R)^2*obj.A_D );
             for i = 1:length(V_inf_Vec)
                 V_inf     = V_inf_Vec(i);
-                D_fs      = 0.5*V_inf.^2*f;
+                D_fs      = 0.5*obj.rho*V_inf.^2*f;
                 lam_c     = V_inf*sin(chi)/( obj.omega*obj.R );
-                iter_cond = 1;
-                while iter_cond > toll
+                iter_cond = 1; % residuo
+                lam=0;         % valore di primo tentativo
+                while iter_cond > options.toll
 
-                    mu = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
-                    if mu <= 0.1    % mu < 0.1 || mu = 0.1
-                        if iter == 0% during the first iteration lam it's not defined,
-                            % we use an approximated value for the induction. In this case
-                            % the induction is computed with the hovering formula since mu
-                            % < 0.1. It is important to notice that this value it's used
-                            % only for the first iteration.
-                            %               lam_i = sqrt(W/2*rho*A_D)/OmegaR;
-                            lam_i = sqrt(-V_inf^2/2 + sqrt( V_inf^4/4 + (W/(2*obj.rho*obj.A_D))^2 ))/(obj.omega*obj.R);
-                        else
-                            lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-                        end
+                    mu    = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
+                    lam_i = s_art.Tc/( 2*sqrt(mu^2 + lam^2) );
+                    if isinf(lam_i)
+                        % nella prima iterazione lam=0 e se mu=0 allora
+                        % usiamo la formula dell'induzione in hovering
+                        lam_i = sqrt(W/2*obj.rho*obj.A_D)/( obj.omega*obj.R );
                     end
-
-                    if mu > 0.1     % mu > 0.1
-                        if iter == 0% during the first iteration lam it's not defined,
-                            % we use an approximated value for the induction.
-                            lam_i = s_art.Tc/( 2*mu );
-                        else
-                            lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-                        end
-                    end
+%                     if mu <= 0.1    % mu < 0.1 || mu = 0.1
+%                         if iter == 0% during the first iteration lam it's not defined,
+%                             % we use an approximated value for the induction. In this case
+%                             % the induction is computed with the hovering formula since mu
+%                             % < 0.1. It is important to notice that this value it's used
+%                             % only for the first iteration.
+%                             %               lam_i = sqrt(W/2*rho*A_D)/OmegaR;
+%                             lam_i = sqrt(-V_inf^2/2 + sqrt( V_inf^4/4 + (W/(2*obj.rho*obj.A_D))^2 ))/(obj.omega*obj.R);
+%                         else
+%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
+%                         end
+%                     end
+% 
+%                     if mu > 0.1     % mu > 0.1
+%                         if iter == 0% during the first iteration lam it's not defined,
+%                             % we use an approximated value for the induction.
+%                             lam_i = s_art.Tc/( 2*mu );
+%                         else
+%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
+%                         end
+%                     end
 
                     lam      = mu*tan(alpha_TPP) + lam_i;
                     theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma*obj.Cl_alpha) ...
