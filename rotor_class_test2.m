@@ -21,7 +21,28 @@ rotore1 = rotore1.ambient();
 rotore1 = rotore1.derived_properties();
 rotore1 = rotore1.rot_vel('omega',1,1);
 rotore1 = rotore1.articulated_rotor(V_inf,Chi,f,W,theta_t);
+W1 = W*1.3;
+rotore1 = rotore1.articulated_rotor(V_inf,Chi,f,W1,theta_t);
+W2 = W*1.5;
+rotore1 = rotore1.articulated_rotor(V_inf,Chi,f,W2,theta_t);
+
+
 %% Graphics
 figure;
 plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{1,1}.Pc_Vec.*10^3,'-k');
+hold on
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{2,1}.Pc_Vec.*10^3,':k');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{3,1}.Pc_Vec.*10^3,'.-k');
+
+figure;
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{1,1}.beta0_Vec,'-k');
+hold on
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{1,1}.beta1c_Vec,':k');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{1,1}.beta1s_Vec,'.-k');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{2,1}.beta0_Vec,'-r');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{2,1}.beta1c_Vec,':r');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{2,1}.beta1s_Vec,'.-r');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{3,1}.beta0_Vec,'-g');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{3,1}.beta1c_Vec,':g');
+plot(V_inf/(rotore1.R*rotore1.omega),rotore1.Analisi_articulated{3,1}.beta1s_Vec,'.-g');
 

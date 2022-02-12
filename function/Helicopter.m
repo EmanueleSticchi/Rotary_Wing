@@ -1,6 +1,6 @@
 classdef Helicopter<Rotor
     % TODO:
-    % -> INSERT LIMITS FOR h, fuel_load (0,1) and otherswhen possible
+    % -> INSERT LIMITS FOR h, fuel_load (0,1) and others    when possible
     properties
         % ---------------------------------------------------------------------
         % Flight Conditions
