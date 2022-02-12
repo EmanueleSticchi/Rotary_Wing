@@ -8,8 +8,7 @@ classdef Rotor
         theta (:,1){mustBeReal, mustBeFinite}        % pitch setting, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite} % Rotor chord, [m]
         c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m]
-        sigma (:,1){mustBeNonnegative, mustBeFinite} % Solidity, [\]
-        sigma_mean{mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
+        sigma{mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
         I     {mustBePositive, mustBeFinite}         % Moment of inertia, [kgm^2]
         gamma {mustBePositive, mustBeFinite}         % Lock number
         % ---------------------------------------------------------------------
@@ -92,11 +91,10 @@ classdef Rotor
         % definition of the main properties. The function needs to be
         % called only once. The unction computes any derived property.
         function obj = derived_properties(obj)
-            obj.sigma = obj.N/pi*obj.c.*obj.r_bar.^-1*obj.R;
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
             obj.c_mean= mean(obj.c);
-            obj.sigma_mean = ( obj.c_mean*obj.N )/( pi*obj.R );
+            obj.sigma = ( obj.c_mean*obj.N )/( pi*obj.R );
         end
 
         % Compute rotational velocity. This function let the user decide
@@ -107,6 +105,12 @@ classdef Rotor
         % the flag. While the flag is equal to 1 there's no need to give
         % the function other inputs.
         function obj = rot_vel(obj,valIN,val,flag_external_tip_speed)
+            arguments
+                obj
+                valIN
+                val
+                flag_external_tip_speed = 0
+            end
             if flag_external_tip_speed == 1
                 obj.omega = obj.sound_vel*obj.Mach_limit/obj.R;
                 obj.n     = obj.omega/(2*pi);
@@ -168,19 +172,19 @@ classdef Rotor
             for i=1:length(V_inf)
                 mu(i)        = V_inf(i)/( obj.R*obj.omega );
                 for j=1:obj.n_r   
-                    B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma(j) )/8;
+                    B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma )/8;
                     B2(i,j)      = B(i,j)*B(i,j);
-                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma(j)/8*( obj.theta(j) - (mu(i)/obj.r_bar(j)) );
+                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma/8*( obj.theta(j) - (mu(i)/obj.r_bar(j)) );
                     s.lam_i(i,j) = 0.5*( sqrt( B2(i,j) + 4*C(i,j) ) - B(i,j) );
                     % inflow angle
                     s.phi(i,j)   = ( mu(i) + s.lam_i(i,j) )./obj.r_bar(j);
                     % angle of attack
                     s.alpha(i,j) = obj.theta(j) - s.phi(i,j);
-                    s.Cl(i,j)    = obj.Cl(alpha(i,j));
-                    s.Cd(i,j)    = obj.Cd(alpha(i,j));
+                    s.Cl(i,j)    = obj.Cl(s.alpha(i,j));
+                    s.Cd(i,j)    = obj.Cd(s.alpha(i,j));
                     % thrust and torque distributions
-                    s.dTc(i,j)   = 0.5*obj.sigma(j)*s.Cl(i,j)*(obj.r_bar(j)^2);
-                    s.dQc(i,j)   = 0.5*obj.sigma(j)*(s.Cl(i,j)*s.phi(i,j) + s.Cd(i,j))*(obj.r_bar(j)^3);
+                    s.dTc(i,j)   = 0.5*obj.sigma*s.Cl(i,j)*(obj.r_bar(j)^2);
+                    s.dQc(i,j)   = 0.5*obj.sigma*(s.Cl(i,j)*s.phi(i,j) + s.Cd(i,j))*(obj.r_bar(j)^3);
                 end
 
                 % thrust and torque
@@ -188,6 +192,7 @@ classdef Rotor
                 s.Qc(i) = obj.simpsons(s.dQc(i,:),obj.r_bar(1),obj.r_bar(end));
 
             end
+            s.mu = mu;
             obj.n_analisi_salita = obj.n_analisi_salita+1;
             obj.Analisi_salita{obj.n_analisi_salita,1} = s;
         end
@@ -271,10 +276,10 @@ classdef Rotor
                     end
 
                     lam      = mu*tan(alpha_TPP) + lam_i;
-                    theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma_mean*obj.Cl_alpha) ...
+                    theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma*obj.Cl_alpha) ...
                         - theta_t/4 - theta_t*( mu.^2 )/4 + 0.5*lam );
 
-                    Pc0      = obj.Cd_mean*obj.sigma_mean*( 1 + 3*mu.^2 )/8;
+                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + 3*mu.^2 )/8;
                     Pc       = lam_i*s_art.Tc + lam_c*s_art.Tc + mu*( D_fs/W )*s_art.Tc + Pc0;
 
                     % flap coeffs.
@@ -286,15 +291,15 @@ classdef Rotor
 
                     % drag and side force coeffs.
                     % induced drag coeff.
-                    Hc_i     = obj.sigma_mean*obj.Cl_alpha*0.5*( theta0*( -beta1c/3 + 0.5*mu*lam ) +...
+                    Hc_i     = obj.sigma*obj.Cl_alpha*0.5*( theta0*( -beta1c/3 + 0.5*mu*lam ) +...
                         theta_t*( -beta1c/4 + mu*lam/4 ) + 3*lam*beta1c/4 + beta0*beta1s/6 + ...
                         mu*( beta0^2 + beta1c^2 )/4 );
                     % parasite drag coeff.
-                    Hc_0     = obj.sigma_mean*obj.Cd_mean*mu/4;
+                    Hc_0     = obj.sigma*obj.Cd_mean*mu/4;
                     % total drag coeff.
                     Hc       = Hc_i + Hc_0;
                     % total lateral force coeff.
-                    Yc       = -obj.sigma_mean*obj.Cl_alpha*0.5*( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
+                    Yc       = -obj.sigma*obj.Cl_alpha*0.5*( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
                         theta_t*( 0.5*mu*beta0 + beta1s*( 1 + mu^2 )/4 ) - 3*lam*beta1s/4 + beta0*beta1c*( 1/6 - mu^2 ) - ...
                         0.5*3*mu*lam*beta0 - beta1c*beta1s/4);
                     % modified lam let us compute the variation of lam of the previous

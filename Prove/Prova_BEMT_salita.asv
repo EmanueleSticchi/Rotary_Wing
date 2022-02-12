@@ -1,6 +1,4 @@
-%% Test BEMT SALITA 
-% Confronto con Eurocopter AS365N fatto in classe su Excel
-% Esito positivo.
+%% Test BEMT SALITA
 clear all; close all; clc;
 %% dati
 rotore1 = Rotor();
@@ -15,11 +13,9 @@ rotore1 = rotore1.r(linspace(0.1,1,20));
 rotore1.R     = 11.94/2;
 rotore1.N     = 4;
 rotore1.c     = linspace(0.39,0.39,rotore1.n_r);
-theta0 = 16;    Dtheta=10;
-rotore1.theta = pi/180*(theta0 - Dtheta*rotore1.r_bar);
+rotore1.theta = pi/180*linspace(16,6,rotore1.n_r);
 rotore1 = rotore1.derived_properties();
-rotore1 = rotore1.rot_vel('omega',238/rotore1.R);
-rotore1.Cl = @(alpha) 5.7*alpha;
+rotore1 = rotore1.rot_vel('omega',238/rotore1.R,0);
 
 rotore1 = rotore1.BEMT_salita(V_inf);
 
