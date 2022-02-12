@@ -41,7 +41,7 @@ classdef Rotor
         r_bar (:,1) {mustBeInRange(r_bar,0,1,'exclude-lower')} %exclusive
         n_r
         %
-        n_analisi = 0
+        n_analisi_salita = 0
         n_analisi_articulated = 0
         n_analisi_autorot = 0
         % ambient conditons
@@ -54,7 +54,7 @@ classdef Rotor
         A_D   {mustBePositive, mustBeFinite}         % Rotor area, [m^2]
 
         % storage variables for analysis and design
-        Analisi
+        Analisi_salita
         Analisi_articulated;
         Analisi_autorot;
         Design
@@ -71,18 +71,31 @@ classdef Rotor
             obj.r_bar = vec_r;
             obj.n_r   = length(obj.r_bar);
         end
-
+        
+        % mass properties
+        function obj = mass_prop(obj,valIN,val)
+            obj = obj.derived_properties;
+            switch valIN
+                case 'G'
+                    obj.gamma = val;
+                    obj.I     = obj.Cl_alpha*obj.rho*obj.R^4*obj.c_mean/val;
+                case 'I'
+                    obj.I= val;
+                    obj.gamma = obj.Cl_alpha*obj.rho*obj.R^4*obj.c_mean./obj.I;
+                otherwise
+                    mustBeMember(valIN,{'G','I'})
+            end
+        end
+        
         % Compute some mass and geometric property. This function needs to
         % be called before doing any other calculations but still after the
         % definition of the main properties. The function needs to be
         % called only once. The unction computes any derived property.
         function obj = derived_properties(obj)
-            obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+            obj.sigma = obj.N/pi*obj.c.*obj.r_bar.^-1*obj.R;
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
             obj.c_mean= mean(obj.c);
-            %             obj.gamma = obj.Cl_alpha*obj.rho*obj.R^4*obj.c_mean./obj.I;
-            obj.gamma = 8;
             obj.sigma_mean = ( obj.c_mean*obj.N )/( pi*obj.R );
         end
 
@@ -119,13 +132,13 @@ classdef Rotor
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% Teoria dell'elemento di pala generale per il rotore (SOLVER)
+        %% BEMT salita assiale
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = BEMT_rotore(obj,V_inf,options)
+        function obj = BEMT_salita(obj,V_inf,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare le prestazioni del rotore
-            % una volta fissata la velocità di traslazione, ovvero il parametro
-            % mu. La procedura di calcolo assume valida l'ipotei di
+            % una volta fissata la velocità di salita, ovvero il parametro
+            % mu. La procedura di calcolo assume valida l'ipotesi di
             % trascurabilità dell'induzione radiale, che conduce alla
             % definizione di una teoria esplicita per il calcolo delle
             % prestazioni del rotore. La funzione calcola le prestazioni per
@@ -134,13 +147,15 @@ classdef Rotor
             % restituisce una matrice di gradienti di spinta e coppia aventi
             % per dimensioni dimesione_radiale x dimensione vettore velocità
             % Input:
-            % - omega: velocità di rotazione del rotore.
-            % - sigma: solidità del rotore.
-            % - teta:  calettamento del rotore.
-            % - R:     raggio del rotore.
-            % - r_bar: raggio adimensionalizzato del rotore.
+            % - obj: 
+            %       - omega: velocità di rotazione del rotore.
+            %       - sigma: solidità del rotore.
+            %       - teta:  calettamento del rotore.
+            %       - R:     raggio del rotore.
+            %       - r_bar: raggio adimensionalizzato del rotore.
             % - V_inf: velocità di traslazione, necessaria per il calcolo del
             %           rapporto di funzionamento, mu.
+            % - options: Analisys options (see BEMTset_rotor)
             % Output:
             % - dTc/dr: gradiente di spinta per stazione fissata lungo la pala
             % - dQc/dr: gradiente di coppia per stazione fissata lungo la pala
@@ -151,37 +166,30 @@ classdef Rotor
                 options = BEMTset_rotor();
             end
             for i=1:length(V_inf)
-                for j=1:obj.n_r
-                    mu(i)        = V_inf(i)./( obj.R*obj.omega );
+                mu(i)        = V_inf(i)/( obj.R*obj.omega );
+                for j=1:obj.n_r   
                     B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma(j) )/8;
-                    B2(i,j)      = B(i,j).*B(i,j);
-                    C(i,j)       = obj.r_bar(j).*obj.Cl_alpha.*obj.sigma(j)*0.1250.*( obj.theta(j) - (mu(i)./obj.r_bar(j)) );
+                    B2(i,j)      = B(i,j)*B(i,j);
+                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma(j)/8*( obj.theta(j) - (mu(i)/obj.r_bar(j)) );
                     s.lam_i(i,j) = 0.5*( sqrt( B2(i,j) + 4*C(i,j) ) - B(i,j) );
                     % inflow angle
                     s.phi(i,j)   = ( mu(i) + s.lam_i(i,j) )./obj.r_bar(j);
                     % angle of attack
                     s.alpha(i,j) = obj.theta(j) - s.phi(i,j);
-                    s.Cl(i,j)    = obj.Cl_alpha*s.alpha(i,j);
+                    s.Cl(i,j)    = obj.Cl(alpha(i,j));
+                    s.Cd(i,j)    = obj.Cd(alpha(i,j));
                     % thrust and torque distributions
-                    s.dTc(i,j)   = 0.5.*obj.sigma(j).*s.Cl(i,j).*(obj.r_bar(j).^2);
-                    s.dQc(i,j)   = 0.5.*obj.sigma(j).*(s.Cl(i,j).*s.phi(i,j) + obj.Cd_mean).*(obj.r_bar(j).^3);
+                    s.dTc(i,j)   = 0.5*obj.sigma(j)*s.Cl(i,j)*(obj.r_bar(j)^2);
+                    s.dQc(i,j)   = 0.5*obj.sigma(j)*(s.Cl(i,j)*s.phi(i,j) + s.Cd(i,j))*(obj.r_bar(j)^3);
                 end
-                if isequal(options.P_correction,'on')
-                    % thrust and torque
-                    s.Tc(i) = obj.simpsons(s.dTc(i,:),0,0.97);
-                    s.Qc(i) = obj.simpsons(s.dQc(i,:),0,0.97);
-                else
-                    % thrust and torque
-                    % metodo delle parabole.
-                    s.Tc(i) = obj.simpsons(s.dTc(i,:),0,1);
-                    s.Qc(i) = obj.simpsons(s.dQc(i,:),0,1);
-                    % metodo dei trapezi
-                    %                   s.Tc(i) = trapz(obj.r_bar,s.dTc(i,:));
-                    %                   s.Qc(i) = trapz(obj.r_bar,s.dQc(i,:));
-                end
+
+                % thrust and torque
+                s.Tc(i) = obj.simpsons(s.dTc(i,:),obj.r_bar(1),options.B*obj.r_bar(end));
+                s.Qc(i) = obj.simpsons(s.dQc(i,:),obj.r_bar(1),obj.r_bar(end));
+
             end
-            obj.n_analisi                = obj.n_analisi+1;
-            obj.Analisi{obj.n_analisi,1} = s;
+            obj.n_analisi_salita = obj.n_analisi_salita+1;
+            obj.Analisi_salita{obj.n_analisi_salita,1} = s;
         end
 
         function I = simpsons(obj,f,a,b)

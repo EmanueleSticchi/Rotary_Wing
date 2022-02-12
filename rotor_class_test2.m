@@ -15,10 +15,12 @@ rotore1.R     = 7.6;
 rotore1.N     = 3;
 rotore1.c     = linspace(0.4,0.4,rotore1.n_r);
 rotore1.theta = pi/180*linspace(13.3,9,rotore1.n_r);
+% obj.I = convmass(obj.Ixx,'slug','kg');
+% obj.I = convlength(convlength(obj.Ixx,'ft','m'),'ft','m');
 % function recall
 rotore1 = rotore1.ambient();
 
-rotore1 = rotore1.derived_properties();
+rotore1 = rotore1.mass_prop('G',8);
 rotore1 = rotore1.rot_vel('omega',1,1);
 rotore1 = rotore1.articulated_rotor(V_inf,Chi,f,W,theta_t);
 W1 = W*1.3;
