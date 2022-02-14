@@ -238,14 +238,11 @@ classdef Rotor
                 W         {mustBePositive, mustBeFinite}
                 theta_t   {mustBeFinite}
                 options = BEMTset_rotor();
-            end
-%             if chi > 0.1745
-%                 warning('The input value for the climb angle may not be small enough!')
-%             end
-            alpha_TPP     = 0;
-            iter          = 0;
+            end            
             s_art.Tc      = W/( obj.rho*(obj.omega*obj.R)^2*obj.A_D );
             for i = 1:length(V_inf_Vec)
+                alpha_TPP     = 0;
+                iter          = 0;
                 V_inf     = V_inf_Vec(i);
                 D_fs      = 0.5*obj.rho*V_inf.^2*f;
                 lam_c     = V_inf*sin(chi)/( obj.omega*obj.R );
@@ -260,28 +257,6 @@ classdef Rotor
                         % usiamo la formula dell'induzione in hovering
                         lam_i = sqrt(W/2*obj.rho*obj.A_D)/( obj.omega*obj.R );
                     end
-%                     if mu <= 0.1    % mu < 0.1 || mu = 0.1
-%                         if iter == 0% during the first iteration lam it's not defined,
-%                             % we use an approximated value for the induction. In this case
-%                             % the induction is computed with the hovering formula since mu
-%                             % < 0.1. It is important to notice that this value it's used
-%                             % only for the first iteration.
-%                             %               lam_i = sqrt(W/2*rho*A_D)/OmegaR;
-%                             lam_i = sqrt(-V_inf^2/2 + sqrt( V_inf^4/4 + (W/(2*obj.rho*obj.A_D))^2 ))/(obj.omega*obj.R);
-%                         else
-%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-%                         end
-%                     end
-% 
-%                     if mu > 0.1     % mu > 0.1
-%                         if iter == 0% during the first iteration lam it's not defined,
-%                             % we use an approximated value for the induction.
-%                             lam_i = s_art.Tc/( 2*mu );
-%                         else
-%                             lam_i = s_art.Tc/( 2*sqrt(mu.^2 + lam.^2) );
-%                         end
-%                     end
-
                     lam      = mu*tan(alpha_TPP) + lam_i;
                     theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma*obj.Cl_alpha) ...
                         - theta_t/4 - theta_t*( mu.^2 )/4 + 0.5*lam );
@@ -321,6 +296,7 @@ classdef Rotor
                 s_art.iter_ART(i)      = iter;
                 s_art.iter_cond_ART(i) = iter_cond;
                 s_art.lam_Vec(i)       = lam;
+                s_art.mu(i)            = mu;
                 s_art.Pc_Vec(i)        = Pc;
                 s_art.Hc_i_Vec(i)      = Hc_i;
                 s_art.Hc_0_Vec(i)      = Hc_0;
@@ -329,15 +305,41 @@ classdef Rotor
                 s_art.beta1c_Vec(i)    = beta1c;
                 s_art.beta1s_Vec(i)    = beta1s;
                 s_art.alpha_TPP_Vec(i) = alpha_TPP;
-                if alpha_TPP > 0.1745 % this warning is inserted just to highlight the fact that
-                    % the angle of attack of the rotor it's greater than 10°.
-                    warning('The rotor angle of attack may not be small enough!')
-                end
+                s_art.theta0(i)        = theta0;
+                s_art.theta(:,i)       = theta0 + theta_t*obj.r_bar;
 
             end
+            s_art.options             = options;
+            s_art.alpha_e             = alpha_e(obj,s_art);
             obj.n_analisi_articulated = obj.n_analisi_articulated+1;
             obj.Analisi_articulated{obj.n_analisi_articulated,1} = s_art;
 
+        end
+        
+        % compute angle of attack for each BE: alpha_e(r_bar,Psi)
+        function alpha_e = alpha_e(obj,s)
+            Psi=s.options.Psi;
+            alpha_e=zeros(obj.n_r,length(Psi),length(s.lam_Vec)); 
+            for idxV=1 : length(s.lam_Vec)
+                b     =  s.beta0_Vec(idxV) + ...
+                         s.beta1c_Vec(idxV)*cos(Psi) +...
+                         s.beta1s_Vec(idxV)*sin(Psi);
+                b_dot = -s.beta1c_Vec(idxV)*sin(Psi) +...
+                         s.beta1s_Vec(idxV)*cos(Psi);
+                     
+                for i=1:obj.n_r
+                    for j=1:length(Psi)
+                        alpha_e(i,j,idxV) = s.theta(i,idxV) -...
+                                            atan2((s.lam_Vec(idxV)  +...
+                                          b_dot(j)*obj.r_bar(i)/obj.omega+...
+                                          b(j)*s.mu(idxV)*cos(Psi(j))),(...
+                                          obj.r_bar(i) + s.mu(idxV)*sin(Psi(j))));
+                        if abs(alpha_e(i,j,idxV)) > 1e2*pi/180
+                            alpha_e(i,j,idxV) = s.theta(i,idxV) - pi/2;
+                        end
+                    end
+                end
+            end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Analisi dell'autorotazione 
