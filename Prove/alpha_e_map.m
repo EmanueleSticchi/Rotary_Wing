@@ -29,30 +29,30 @@ rotore1 = rotore1.BEMT_articulated(V_inf,Chi,f,W,theta_t);
 % rotore1 = rotore1.BEMT_articulated(V_inf,Chi,f,W2,theta_t);
 
 %% Controllo
-s = rotore1.Analisi_articulated{1,1};
-Psi=s.options.Psi;
-alpha_e=zeros(rotore1.n_r,length(Psi),length(s.lam_Vec));
-idxV = 16;
-b     =  s.beta0_Vec(idxV) + ...
-    s.beta1c_Vec(idxV)*cos(Psi) +...
-    s.beta1s_Vec(idxV)*sin(Psi);
-
-b_dot = -s.beta1c_Vec(idxV)*sin(Psi) +...
-    s.beta1s_Vec(idxV)*cos(Psi);
-figure
-plot(Psi*180/pi,b*180/pi,'b',Psi*180/pi,b_dot*180/pi,'r')
-figure
-plot(rotore1.r_bar,s.theta(:,idxV)*180/pi)
-figure
-plot(s.mu,s.lam_Vec,s.mu(idxV),s.lam_Vec(idxV),'*','MarkerSize',10)
-figure
-i=r;
-j=c;
-alpha_e(i,j,idxV) = s.theta(i,idxV) -...
-            (s.lam_Vec(idxV)  +...
-            b_dot(j)*rotore1.r_bar(i)/rotore1.omega+...
-            b(j)*s.mu(idxV)*cos(Psi(j)))/(...
-            rotore1.r_bar(i) + s.mu(idxV)*sin(Psi(j)))
+% s = rotore1.Analisi_articulated{1,1};
+% Psi=s.options.Psi;
+% alpha_e=zeros(rotore1.n_r,length(Psi),length(s.lam_Vec));
+% idxV = 16;
+% b     =  s.beta0_Vec(idxV) + ...
+%     s.beta1c_Vec(idxV)*cos(Psi) +...
+%     s.beta1s_Vec(idxV)*sin(Psi);
+% 
+% b_dot = -s.beta1c_Vec(idxV)*sin(Psi) +...
+%     s.beta1s_Vec(idxV)*cos(Psi);
+% figure
+% plot(Psi*180/pi,b*180/pi,'b',Psi*180/pi,b_dot*180/pi,'r')
+% figure
+% plot(rotore1.r_bar,s.theta(:,idxV)*180/pi)
+% figure
+% plot(s.mu,s.lam_Vec,s.mu(idxV),s.lam_Vec(idxV),'*','MarkerSize',10)
+% figure
+% i=r;
+% j=c;
+% alpha_e(i,j,idxV) = s.theta(i,idxV) -...
+%             (s.lam_Vec(idxV)  +...
+%             b_dot(j)*rotore1.r_bar(i)/rotore1.omega+...
+%             b(j)*s.mu(idxV)*cos(Psi(j)))/(...
+%             rotore1.r_bar(i) + s.mu(idxV)*sin(Psi(j)))
 
 
 
