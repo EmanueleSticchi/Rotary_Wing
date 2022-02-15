@@ -354,6 +354,7 @@ classdef Rotor
                 s_art.theta(:,i)       = theta0 + obj.theta_t*obj.r_bar;
 
             end
+            s_art.V_inf                   = V_inf_Vec;
             s_art.options             = options;
             s_art.alpha_e             = alpha_e(obj,s_art);
             obj.n_analisi_articulated = obj.n_analisi_articulated+1;
@@ -379,13 +380,89 @@ classdef Rotor
                                           b_dot(j)*obj.r_bar(i)/obj.omega+...
                                           b(j)*s.mu(idxV)*cos(Psi(j))),(...
                                           obj.r_bar(i) + s.mu(idxV)*sin(Psi(j))));
-%                         if abs(alpha_e(i,j,idxV)) > 1e2*pi/180
-%                             alpha_e(i,j,idxV) = s.theta(i,idxV) - pi/2;
-%                         end
                     end
                 end
             end
         end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% Sentiero di Stallo
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [s,ir,c] = sentiero_stallo(obj,alpha_max_2D,valIN,ToTheta,chi,f,options)
+            %------------------------------------------------------------------
+            % Questa funzione consente di calcolare il sentiero di stallo
+            % per assegnata spinta o callettamento di radice (comando
+            % collettivo), angolo di salita (chi) e resistenza (f).
+            % Il raggiungimento della condizione critica è basato
+            % sull'angolo di stallo 2D del profilo della pala in condizioni
+            % stazionarie (l'unico effetto instazionario di cui si
+            % tiene in conto è l'effetto smorzante d(beta)/dt).
+            %
+            % Input:
+            % - alpha_max_2D    : Angolo di stallo 2D
+            % - valIN           : Flag per scegliere il tipo di risoluzione
+            %                     delproblema: "T" -> Spinta fissata;
+            %                     "Theta" -> collettivo fissato.
+            % - ToTheta[N o rad]: Spinta richiesta o comando collettivo 
+            %                     (theta0) a seconda del flag valIN
+            % - Chi  [rad]      : angolo di salita del rotore
+            % - f    [visc.area]: prodotto dell'area di riferimento per la
+            %                       resistenza dell'intero elicottero.           
+            % - options         : Analisys options (see BEMTset_rotor)
+            % Output:
+            % - s               : Struct (output di BEMT_articulated) in
+            %                       corrispondenza della condizione di 
+            %                       inizio stallo
+            % - ir e c          : indice di riga e colonna in s.alpha_e
+            %                       della posizioni della prima sezione
+            %                       stallata. In coordinate polari
+            %                       (obj.r_bar(r),s.options.Psi(c))
+            %--------------------------------------------------------------
+            arguments
+                obj
+                alpha_max_2D (1,1) {mustBePositive, mustBeFinite}
+                valIN     {mustBeMember(valIN,{'T','Theta',})}
+                ToTheta   (1,1) {mustBeFinite}
+                chi       {mustBeFinite}
+                f         {mustBePositive, mustBeFinite}
+                options = BEMTset_rotor();
+            end
+            %--------------------------------------------------------------
+            V_inf0 = 0.1;
+            f0=obj.func(V_inf0,alpha_max_2D,valIN,ToTheta,chi,f,options);
+            if abs(f0)>options.toll
+                V_inf1 = V_inf0 + 1;
+                f1=obj.func(V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
+                while abs(f1)>options.toll
+                    qk=(f1-f0)/(V_inf1-V_inf0);
+                    V_inf0=V_inf1; f0=f1;
+                    V_inf1=V_inf1-f1/qk;
+                    f1=obj.func(V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
+                end
+            else
+                V_inf1=V_inf0;
+            end
+            [~,ir,c,s]= func(obj,V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
+            % mappa di alpha_e
+            alphamap(obj,'Plot',{s;s.mu})
+            % plot di alpha_e_max
+            % Create polar data
+            [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
+            % Convert to Cartesian
+            x = r.*cos(psi);
+            y = r.*sin(psi);
+            hold on
+            plot(x(c,ir),y(c,ir),'*k','MarkerSize',10)
+        end
+        
+        
+        function [f,r,c,s]= func(obj,V_inf,alpha_max_2D,valIN,ToTheta,chi,f,options) 
+            obj2=obj.BEMT_articulated(valIN,ToTheta,V_inf,chi,f,options);
+            s=obj2.Analisi_articulated{obj2.n_analisi_articulated,1};
+            alpha_e=max(s.alpha_e,[],'all');
+            [r,c] = find(s.alpha_e == alpha_e);
+            f = (alpha_e -alpha_max_2D)/alpha_max_2D;
+        end
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Analisi dell'autorotazione 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -406,7 +483,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% PLOTTING
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function alphamap(obj,valIN,val)
+        function s=alphamap(obj,valIN,val)
             % Plot alpha_e contour
             % INPUT:
             % - valIN:    flag per l'input val:
