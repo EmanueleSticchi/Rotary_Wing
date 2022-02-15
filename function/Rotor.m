@@ -5,7 +5,7 @@ classdef Rotor
         % ---------------------------------------------------------------------
         N     {mustBeInteger, mustBeFinite}          % Number of blades, [\]
         R     {mustBePositive, mustBeFinite}         % Rotor Radius, [m]
-        theta (:,1){mustBeReal, mustBeFinite}        % pitch setting, [rad]
+        theta_t (1,1){mustBeReal, mustBeFinite}      % pitch twist angle, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite} % Rotor chord, [m]
         c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m]
         sigma {mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
@@ -58,7 +58,8 @@ classdef Rotor
         Analisi_autorot;
         Design
     end
-    methods
+    
+    methods(Access=public)
         % Compute ambient conditions. This function needs to be called
         % first in order to set atmospheric conditions properly.
         function obj = ambient(obj)
@@ -138,7 +139,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% BEMT salita assiale
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = BEMT_salita(obj,V_inf,options)
+        function obj = BEMT_salita(obj,V_inf,theta0,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare le prestazioni del rotore
             % una volta fissata la velocità di salita, ovvero il parametro
@@ -159,6 +160,7 @@ classdef Rotor
             %       - r_bar: raggio adimensionalizzato del rotore.
             % - V_inf: velocità di traslazione, necessaria per il calcolo del
             %           rapporto di funzionamento, mu.
+            % - theta0: Comando collettivo,pitch alla radice [rad]
             % - options: Analisys options (see BEMTset_rotor)
             % Output:
             % - dTc/dr: gradiente di spinta per stazione fissata lungo la pala
@@ -167,19 +169,22 @@ classdef Rotor
             arguments
                 obj
                 V_inf      (:,1){mustBeFinite}
+                theta0     (1,1){mustBeFinite}
                 options = BEMTset_rotor();
             end
+            theta = theta0 + obj.theta_t*obj.r_bar;
             for i=1:length(V_inf)
                 mu(i)        = V_inf(i)/( obj.R*obj.omega );
                 for j=1:obj.n_r   
                     B(i,j)       = mu(i) + ( obj.Cl_alpha.*obj.sigma )/8;
                     B2(i,j)      = B(i,j)*B(i,j);
-                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma/8*( obj.theta(j) - (mu(i)/obj.r_bar(j)) );
+                    C(i,j)       = obj.r_bar(j)*obj.Cl_alpha*obj.sigma/8*...
+                        ( theta(j) - (mu(i)/obj.r_bar(j)) );
                     s.lam_i(i,j) = 0.5*( sqrt( B2(i,j) + 4*C(i,j) ) - B(i,j) );
                     % inflow angle
                     s.phi(i,j)   = ( mu(i) + s.lam_i(i,j) )./obj.r_bar(j);
                     % angle of attack
-                    s.alpha(i,j) = obj.theta(j) - s.phi(i,j);
+                    s.alpha(i,j) = theta(j) - s.phi(i,j);
                     s.Cl(i,j)    = obj.Cl(s.alpha(i,j));
                     s.Cd(i,j)    = obj.Cd(s.alpha(i,j));
                     % thrust and torque distributions
@@ -192,7 +197,9 @@ classdef Rotor
                 s.Qc(i) = obj.simpsons(s.dQc(i,:),obj.r_bar(1),obj.r_bar(end));
 
             end
-            s.mu = mu;
+            s.mu     = mu;
+            s.theta0 = theta0;
+            s.theta  = theta;
             obj.n_analisi_salita = obj.n_analisi_salita+1;
             obj.Analisi_salita{obj.n_analisi_salita,1} = s;
         end
@@ -204,7 +211,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% BEMT volo traslato per rotore non rigido (articolato)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = BEMT_articulated(obj,V_inf_Vec,chi,f,W,theta_t,options)
+        function obj = BEMT_articulated(obj,valIN,ToTheta,V_inf_Vec,chi,f,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare i coefficienti adimensionali di spinta,
             % resistenza, forza laterale, coppia e potenza, gli angoli di
@@ -222,81 +229,119 @@ classdef Rotor
             % in un codice "ad hoc", in cui si utiizza la sola classe
             % Rotor.m.
             % Input:
+            % - valIN           : Flag per scegliere il tipo di risoluzione
+            %                     delproblema: "T" -> Spinta fissata;
+            %                     "Theta" -> collettivo fissato.
+            % - ToTheta[N o rad]: Spinta richiesta o comando collettivo 
+            %                     (theta0) a seconda del flag valIN
             % - V_inf[m/s]      : velocità di avanzamento del rotore
             % - Chi  [rad]      : angolo di salita del rotore
             % - f    [visc.area]: prodotto dell'area di riferimento per la
-            %                       resistenza dell'intero elicottero.
-            % - W    [N]        : peso dell'elicottero
-            % - theta_t [rad]   : coefficiente angolare della retta che
-            %                       definisce lo svergolamento
+            %                       resistenza dell'intero elicottero.           
             % - options         : Analisys options (see BEMTset_rotor)
             arguments
                 obj
+                valIN     {mustBeMember(valIN,{'T','Theta',})}
+                ToTheta   (1,1) {mustBeFinite}
                 V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
                 chi       {mustBeFinite}
                 f         {mustBePositive, mustBeFinite}
-                W         {mustBePositive, mustBeFinite}
-                theta_t   {mustBeFinite}
                 options = BEMTset_rotor();
-            end            
-            s_art.Tc      = W/( obj.rho*(obj.omega*obj.R)^2*obj.A_D );
+            end
+
+            switch valIN
+                case "T"
+                    T  = ToTheta;
+                    Tc = T/( obj.rho*(obj.omega*obj.R)^2*obj.A_D );
+                case "Theta"
+                    theta0 = ToTheta;
+                otherwise
+                    error('Attezione alla scelta del metodo. Scegliere tra "T" o "Theta"')
+            end
+            
+            
+            
             for i = 1:length(V_inf_Vec)
-                alpha_TPP     = 0;
-                iter          = 0;
+                iter      = 0;        % contatore iterazioni
+                iter_cond = 1;        % residuo
                 V_inf     = V_inf_Vec(i);
+                alpha_TPP = 0;        % valore di primo tentativo
+                lam       = 0;        % valore di primo tentativo
+                if isequal(valIN,"Theta")
+                    mu    = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
+%                     [lam_i,lam,Tc]=initialize_routin(obj,mu,alpha_TPP,theta0,options);
+                    Tc = 0.5*(obj.sigma*obj.Cl_alpha)*...
+                        (theta0/3*(1+1.5*mu^2) + obj.theta_t/4*(1+mu^2)...
+                        - lam/2);
+                end
                 D_fs      = 0.5*obj.rho*V_inf.^2*f;
                 lam_c     = V_inf*sin(chi)/( obj.omega*obj.R );
-                iter_cond = 1; % residuo
-                lam=0;         % valore di primo tentativo
+                
                 while iter_cond > options.toll
-
                     mu    = ( V_inf*cos(alpha_TPP) )/( obj.omega*obj.R );
-                    lam_i = s_art.Tc/( 2*sqrt(mu^2 + lam^2) );
-                    if isinf(lam_i)
+                                                           
+                    if sqrt(mu^2 + lam^2) < 1e-2
                         % nella prima iterazione lam=0 e se mu=0 allora
                         % usiamo la formula dell'induzione in hovering
-                        lam_i = sqrt(W/2*obj.rho*obj.A_D)/( obj.omega*obj.R );
+                        lam_i = sqrt(Tc/2);
+                    else
+                        lam_i = Tc/( 2*sqrt(mu^2 + lam^2) );
                     end
                     lam      = mu*tan(alpha_TPP) + lam_i;
-                    theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*( (2*s_art.Tc)/(obj.sigma*obj.Cl_alpha) ...
-                        - theta_t/4 - theta_t*( mu.^2 )/4 + 0.5*lam );
-
-                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + 3*mu.^2 )/8;
-                    Pc       = lam_i*s_art.Tc + lam_c*s_art.Tc + mu*( D_fs/W )*s_art.Tc + Pc0;
+                    if isequal(valIN,"T")
+                        theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*...
+                            ( (2*Tc)/(obj.sigma*obj.Cl_alpha) ...
+                            - obj.theta_t/4 - obj.theta_t*( mu.^2 )/4 + 0.5*lam );
+                    else
+                        Tc = 0.5*(obj.sigma*obj.Cl_alpha)*...
+                        (theta0/3*(1+1.5*mu^2) + obj.theta_t/4*(1+mu^2)...
+                        - lam/2);
+                    end
+                    
+                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + options.k*mu^2 )/8;
+                    Pc       = lam_i*Tc + lam_c*Tc + ...
+                        mu*( D_fs/(Tc*obj.rho*obj.omega^2*obj.R^4*pi) )*Tc + Pc0;
 
                     % flap coeffs.
-                    beta0    = obj.gamma*( theta0/8*(1 + mu.^2) + ...
-                        theta_t/10*(1 + 5*(mu.^2)/6) - lam/6 );
-                    beta1c   = -2*mu*( (4*theta0/3 + theta_t - lam)...
-                        /(1 - 0.5*mu.^2) );
-                    beta1s   = -4*mu/3.*beta0/(1 + 0.5*mu.^2);
+                    beta0    = obj.gamma*( theta0/8*(1 + mu^2) + ...
+                        obj.theta_t/10*(1 + 5*(mu^2)/6) - lam/6 );
+                    beta1c   = -2*mu*( (4*theta0/3 + obj.theta_t - lam)...
+                        /(1 - 0.5*mu^2) );
+                    beta1s   = -4*mu/3*beta0/(1 + 0.5*mu^2);
 
                     % drag and side force coeffs.
                     % induced drag coeff.
                     Hc_i     = obj.sigma*obj.Cl_alpha*0.5*( theta0*( -beta1c/3 + 0.5*mu*lam ) +...
-                        theta_t*( -beta1c/4 + mu*lam/4 ) + 3*lam*beta1c/4 + beta0*beta1s/6 + ...
+                        obj.theta_t*( -beta1c/4 + mu*lam/4 ) + 3*lam*beta1c/4 + beta0*beta1s/6 + ...
                         mu*( beta0^2 + beta1c^2 )/4 );
                     % parasite drag coeff.
                     Hc_0     = obj.sigma*obj.Cd_mean*mu/4;
                     % total drag coeff.
                     Hc       = Hc_i + Hc_0;
                     % total lateral force coeff.
-                    Yc       = -obj.sigma*obj.Cl_alpha*0.5*( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
-                        theta_t*( 0.5*mu*beta0 + beta1s*( 1 + mu^2 )/4 ) - 3*lam*beta1s/4 + beta0*beta1c*( 1/6 - mu^2 ) - ...
+                    Yc       = -obj.sigma*obj.Cl_alpha*0.5*...
+                        ( theta0*( 3*mu*beta0/4 + beta1s*( 1 + 0.5*3*mu^2 )/3 ) +...
+                        obj.theta_t*( 0.5*mu*beta0 + beta1s*( 1 + mu^2 )/4 )...
+                        - 3*lam*beta1s/4 + beta0*beta1c*( 1/6 - mu^2 ) - ...
                         0.5*3*mu*lam*beta0 - beta1c*beta1s/4);
                     % modified lam let us compute the variation of lam of the previous
                     % iteration
                     lam_temp = lam;
-                    lam      = lam_i + lam_c + mu*( Hc/s_art.Tc ) + mu*( D_fs/W );
-                    alpha_TPP= atan((lam - s_art.Tc/(2*sqrt( mu^2 + lam^2 )))/mu);
+                    lam      = lam_i + lam_c + mu*( Hc/Tc ) + ...
+                        mu*( D_fs/(Tc*obj.rho*obj.omega^2*obj.R^4*pi) );
+                    alpha_TPP= atan((lam - Tc/(2*sqrt( mu^2 + lam^2 )))/mu);
 
                     iter_cond= abs(lam - lam_temp);
                     iter     = iter + 1;
                 end
+                
                 s_art.iter_ART(i)      = iter;
                 s_art.iter_cond_ART(i) = iter_cond;
                 s_art.lam_Vec(i)       = lam;
+                s_art.lam_i(i)         = lam_i;
+                s_art.lam_c(i)         = lam_c;
                 s_art.mu(i)            = mu;
+                s_art.Tc(i)            = Tc;
                 s_art.Pc_Vec(i)        = Pc;
                 s_art.Hc_i_Vec(i)      = Hc_i;
                 s_art.Hc_0_Vec(i)      = Hc_0;
@@ -306,7 +351,7 @@ classdef Rotor
                 s_art.beta1s_Vec(i)    = beta1s;
                 s_art.alpha_TPP_Vec(i) = alpha_TPP;
                 s_art.theta0(i)        = theta0;
-                s_art.theta(:,i)       = theta0 + theta_t*obj.r_bar;
+                s_art.theta(:,i)       = theta0 + obj.theta_t*obj.r_bar;
 
             end
             s_art.options             = options;
@@ -334,9 +379,9 @@ classdef Rotor
                                           b_dot(j)*obj.r_bar(i)/obj.omega+...
                                           b(j)*s.mu(idxV)*cos(Psi(j))),(...
                                           obj.r_bar(i) + s.mu(idxV)*sin(Psi(j))));
-                        if abs(alpha_e(i,j,idxV)) > 1e2*pi/180
-                            alpha_e(i,j,idxV) = s.theta(i,idxV) - pi/2;
-                        end
+%                         if abs(alpha_e(i,j,idxV)) > 1e2*pi/180
+%                             alpha_e(i,j,idxV) = s.theta(i,idxV) - pi/2;
+%                         end
                     end
                 end
             end
@@ -361,6 +406,85 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% PLOTTING
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function alphamap(obj,valIN,val)
+            % Plot alpha_e contour
+            % INPUT:
+            % - valIN:    flag per l'input val:
+            %                   - 'Plot'  -> in tal caso val dovrà essere
+            %                   un cell array 2x1 in cui vi è 
+            %                   una struct (output di BEMT_articulated) ed
+            %                   un vettore di valori di mu per i quali si
+            %                   desidera effettuare i plot
+            %                    
+            %                   - 'Solve' -> in tal caso val dovrà essere
+            %                   una cell array  6x1 con gli input da dare
+            %                   alla funzione BEMT_articulated 
+            %                 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            switch valIN
+                case 'Plot'
+                    s=val{1,1};
+                    for i =1:length(val{2,1})
+                        [~,idxMu(i)]=min(abs(s.mu - val{2,1}(i)));
+                    end
+                case 'Solve'
+                    valIN     = val{1,1};
+                    ToTheta   = val{2};
+                    V_inf_Vec = val{3};
+                    chi       = val{4};
+                    f         = val{5};
+                    options   = val{6};
+                    obj2=obj.BEMT_articulated(valIN,ToTheta,V_inf_Vec,...
+                        chi,f,options);
+                    s=obj2.Analisi_articulated{obj2.n_analisi_articulated,1};
+                    idxMu=1:length(s.mu);
+                otherwise
+                    error('Attenzione valIN può essere: "Plot" o "Solve"')
+            end
+            
+
+            for i = 1:length(idxMu)
+                figure
+                idxV=idxMu(i);
+                alpha_e=s.alpha_e(:,:,idxV)*180/pi;
+                % Create polar data
+                [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
+                % Convert to Cartesian
+                x = r.*cos(psi);
+                y = r.*sin(psi);
+                % define polar axes
+                h = polar(x,y);
+                hold on;
+                polar(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
+                polar(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
+                % contourf(x,y,alpha_e');
+                pc= pcolor(x,y,alpha_e');
+                contour(x,y,alpha_e','k','ShowText','on');
+                shading interp
+                % colormap 'hsv'
+                cbar=colorbar(gca);
+                cbar.Label.String = '\alpha_e';
+                cbar.Label.FontSize= 16;
+                % cbar.Limits = [-10 10];
+  
+                % Hide the POLAR function data and leave annotations
+                set(h,'Visible','off')
+                % Turn off axes and set square aspect ratio
+                axis off
+                axis image
+                view([90 90])
+                title(['\mu = ',num2str(s.mu(idxV)),'   \alpha_{e_{max}} = ',...
+                    num2str(max(alpha_e,[],'all')),' deg'])
+            end
+            
+
+
+
+
+        end
+        
+
+        
         function Model3D(obj,x,z)
             % Plot 3D model of the propeller
             % INPUT:
@@ -436,5 +560,26 @@ classdef Rotor
 
             end
         end
+    end
+    methods(Access=private)
+        function [lam_i,lam,Tc]=initialize_routin(obj,mu,alpha_TPP,theta0,options)
+            lam=0;
+            res=1;
+            while res > options.toll
+                lam_old=lam;
+                Tc = max([0.5*(obj.sigma*obj.Cl_alpha)*...
+                    (theta0/3*(1+1.5*mu^2) + obj.theta_t/4*(1+mu^2)...
+                    - lam/2),0]);
+                lam_i = Tc/( 2*sqrt(mu^2 + lam^2) );
+                if isinf(lam_i)
+                    % nella prima iterazione lam=0 e se mu=0 allora
+                    % usiamo la formula dell'induzione in hovering
+                    lam_i = sqrt(Tc/2);
+                end
+                lam = lam_i +mu*tan(alpha_TPP);
+                res = abs(lam -lam_old);
+            end
+        end
+        
     end
 end
