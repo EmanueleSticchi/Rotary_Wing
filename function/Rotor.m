@@ -298,9 +298,11 @@ classdef Rotor
                         - lam/2);
                     end
                     
-                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + options.k*mu^2 )/8;
-                    Pc       = lam_i*Tc + lam_c*Tc + ...
-                        mu*( D_fs/(Tc*obj.rho*obj.omega^2*obj.R^4*pi) )*Tc + Pc0;
+                    Pc0      = obj.Cd_mean*obj.sigma*( 1 + options.k_mu*mu^2 )/8;
+                    Pci      = options.k_i*lam_i*Tc;
+                    Pc_fus   = mu*( D_fs/(Tc*obj.rho*obj.omega^2*obj.R^4*pi) )*Tc;
+                    Pc       = Pci + lam_c*Tc + Pc_fus + Pc0;
+                        
 
                     % flap coeffs.
                     beta0    = obj.gamma*( theta0/8*(1 + mu^2) + ...
@@ -343,6 +345,9 @@ classdef Rotor
                 s_art.mu(i)            = mu;
                 s_art.Tc(i)            = Tc;
                 s_art.Pc_Vec(i)        = Pc;
+                s_art.Pc_fus_Vec(i)    = Pc_fus;
+                s_art.Pci_Vec(i)       = Pci;
+                s_art.Pc0_Vec(i)       = Pc0;
                 s_art.Hc_i_Vec(i)      = Hc_i;
                 s_art.Hc_0_Vec(i)      = Hc_0;
                 s_art.Yc_Vec(i)        = Yc;
@@ -354,18 +359,19 @@ classdef Rotor
                 s_art.theta(:,i)       = theta0 + obj.theta_t*obj.r_bar;
 
             end
-            s_art.V_inf                   = V_inf_Vec;
-            s_art.options             = options;
-            s_art.alpha_e             = alpha_e(obj,s_art);
-            obj.n_analisi_articulated = obj.n_analisi_articulated+1;
+            s_art.V_inf                    = V_inf_Vec;
+            s_art.options                  = options;
+            [s_art.alpha_e,s_art.Mach_e]   = alpha_e(obj,s_art);
+            obj.n_analisi_articulated      = obj.n_analisi_articulated+1;
             obj.Analisi_articulated{obj.n_analisi_articulated,1} = s_art;
 
         end
         
         % compute angle of attack for each BE: alpha_e(r_bar,Psi)
-        function alpha_e = alpha_e(obj,s)
+        function [alpha_e,Mach_e] = alpha_e(obj,s)
             Psi=s.options.Psi;
             alpha_e=zeros(obj.n_r,length(Psi),length(s.lam_Vec)); 
+            Mach_e =zeros(obj.n_r,length(Psi),length(s.lam_Vec));
             for idxV=1 : length(s.lam_Vec)
                 b     =  s.beta0_Vec(idxV) + ...
                          s.beta1c_Vec(idxV)*cos(Psi) +...
@@ -380,6 +386,10 @@ classdef Rotor
                                           b_dot(j)*obj.r_bar(i)/obj.omega+...
                                           b(j)*s.mu(idxV)*cos(Psi(j))),(...
                                           obj.r_bar(i) + s.mu(idxV)*sin(Psi(j))));
+                        Mach_e(i,j,idxV)  = ( (s.lam_Vec(idxV)  +...
+                                          b_dot(j)*obj.r_bar(i)/obj.omega+...
+                                          b(j)*s.mu(idxV)*cos(Psi(j)))^2 + (...
+                                          obj.r_bar(i) + s.mu(idxV)*sin(Psi(j)))^2 )/obj.sound_vel;                                         
                     end
                 end
             end
@@ -443,7 +453,7 @@ classdef Rotor
             end
             [~,ir,c,s]= func(obj,V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
             % mappa di alpha_e
-            alphamap(obj,'Plot',{s;s.mu})
+            s = alphamap(obj,'Plot',{s;s.mu});
             % plot di alpha_e_max
             % Create polar data
             [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
@@ -452,6 +462,41 @@ classdef Rotor
             y = r.*sin(psi);
             hold on
             plot(x(c,ir),y(c,ir),'*k','MarkerSize',10)
+
+            % Dopo aver calcolato la mappa degli angoli attacco adesso
+            % calcoliamo il sentiero di stallo vero e proprio
+            figure 
+            % define polar axes
+%             h = polar(x,y);
+            polarplot(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
+            hold on;
+            polarplot(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
+            V_inf = s.V_inf*[1:0.02:1.2]';
+            obj2 = BEMT_articulated(obj,valIN,ToTheta,V_inf,chi,f,options);
+            alpha_e = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.alpha_e; 
+            clear obj2;
+            x1 = 0;
+            y1 = 0;
+            polarplot(s.options.Psi(c),obj.r_bar(ir),'*k','MarkerSize',10);
+                            
+            for k = 2:length(V_inf)-3
+                [ir,ic] = find(( (alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad') ) &...
+                    ( (alpha_e(:,:,k) - alpha_max_2D) > 0 ) );
+                A = zeros(length(s.options.Psi), length(obj.r_bar));
+                for i = 1:length(s.options.Psi)
+                    for j = 1:length(length(obj.r_bar))
+                        for 
+                    end
+                end
+                p = polyfit(s.options.Psi(ic),obj.r_bar(ir),max(min(3,length(ir)-1),1));
+                r_new = polyval(p,s.options.Psi(ic));
+                polarplot(s.options.Psi(ic),r_new,'k');
+                
+            end
+            ax = gca;
+            ax.ThetaZeroLocation = 'bottom';
+            ax.RTickLabel = '';
+
         end
         
         
