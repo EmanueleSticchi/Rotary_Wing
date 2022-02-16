@@ -23,32 +23,34 @@ alpha_max_2D = convang(15,'deg','rad');
 [s,r,c] = rotore1.sentiero_stallo(alpha_max_2D,'T',W,Chi,f);
 
 %% POST PROCESSING
-Video = VideoWriter('Sentiero_Stallo','Motion JPEG AVI');    % Open a Video file
-Video_xy.Quality = 100;
-open(Video);
-writeVideo(Video,getframe(figure(1)))
-V_inf = s.V_inf*[1.01 :0.02:1.2]';
-s=alphamap(rotore1,'Solve',{'T',W,...
-    V_inf,Chi,f,BEMTset_rotor()});
-% plot di alpha_e_max
-% Create polar data
-[ra,psi] = meshgrid(rotore1.r_bar,s.options.Psi);
-% Convert to Cartesian
-x = ra.*cos(psi);   x1=0;
-y = ra.*sin(psi);   y1=0;
-for k= 1:length(V_inf)
-    figure(k+1)
-    hold on
-    [r,c] = find(abs(s.alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad'));
-    for i=1:length(c)
-        x1(i)=x(c(i),r(i));
-        y1(i)=y(c(i),r(i));
-    end
-    plot(x1,y1,'--r')
-    writeVideo(Video,getframe(figure(k+1)));
-    pause(2)
-    clear x1 y1
-end
-close(Video);
+% Video = VideoWriter('Sentiero_Stallo','Motion JPEG AVI');    % Open a Video file
+% Video_xy.Quality = 100;
+% open(Video);
+% writeVideo(Video,getframe(figure(1)))
+% V_inf = s.V_inf*[1.01 :0.02:1.2]';
+% s=alphamap(rotore1,'Solve',{'T',W,...
+%     V_inf,Chi,f,BEMTset_rotor()});
+% % plot di alpha_e_max
+% % Create polar data
+% [ra,psi] = meshgrid(rotore1.r_bar,s.options.Psi);
+% % Convert to Cartesian
+% x = ra.*cos(psi);   x1=0;
+% y = ra.*sin(psi);   y1=0;
+% for k= 1:length(V_inf)
+%     figure(k+1)
+%     hold on
+%     [r,c] = find(abs(s.alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad'));
+%     for i=1:length(c)
+%         x1(i)=x(c(i),r(i));
+%         y1(i)=y(c(i),r(i));
+%     end
+%     plot(x1,y1,'--r')
+%     writeVideo(Video,getframe(figure(k+1)));
+%     pause(2)
+%     clear x1 y1
+% end
+% close(Video);
+
+
 
 
