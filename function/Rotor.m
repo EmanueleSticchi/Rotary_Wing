@@ -466,36 +466,65 @@ classdef Rotor
             % Dopo aver calcolato la mappa degli angoli attacco adesso
             % calcoliamo il sentiero di stallo vero e proprio
             figure 
-            % define polar axes
-%             h = polar(x,y);
-            polarplot(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
-            hold on;
-            polarplot(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
+            % ricavo alpha_e per un vettore i velocità incrementali
+            % rispetto a quella critica
             V_inf = s.V_inf*[1:0.02:1.2]';
             obj2 = BEMT_articulated(obj,valIN,ToTheta,V_inf,chi,f,options);
-            alpha_e = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.alpha_e; 
+            alpha_e = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.alpha_e;
+            mu      = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.mu;
+            a_TPP   = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.alpha_TPP_Vec;
+            mu = mu.* cos(a_TPP).^-1;
             clear obj2;
-            x1 = 0;
-            y1 = 0;
-            polarplot(s.options.Psi(c),obj.r_bar(ir),'*k','MarkerSize',10);
-                            
+            polarplot(s.options.Psi(c),obj.r_bar(ir),'*k','MarkerSize',10,...
+                'DisplayName',['\mu = ',num2str(mu(1))]);
+            hold on;
+            formatspec={'-',':','--','.-','-s','-d','-^'};
             for k = 2:length(V_inf)-3
                 [ir,ic] = find(( (alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad') ) &...
                     ( (alpha_e(:,:,k) - alpha_max_2D) > 0 ) );
-                A = zeros(length(s.options.Psi), length(obj.r_bar));
-                for i = 1:length(s.options.Psi)
-                    for j = 1:length(length(obj.r_bar))
-                        for 
-                    end
-                end
                 p = polyfit(s.options.Psi(ic),obj.r_bar(ir),max(min(3,length(ir)-1),1));
                 r_new = polyval(p,s.options.Psi(ic));
-                polarplot(s.options.Psi(ic),r_new,'k');
-                
+                polarplot(s.options.Psi(ic),r_new,[formatspec{k-1},'k'],...
+                    'DisplayName',['\mu = ',num2str(mu(k))]);  
             end
+            
             ax = gca;
             ax.ThetaZeroLocation = 'bottom';
             ax.RTickLabel = '';
+            legend1 = legend('AutoUpdate','off','FontSize',14);
+            % limiti rotore
+            polarplot(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k',...
+                'LineWidth',1)
+            hold on;
+            polarplot(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k',...
+                'LineWidth',1)
+
+            
+            
+            
+            % %%%%  Prova con funzione contour
+%             figure
+%             h=polar(x,y);
+%             hold on
+%             for k = 2:length(V_inf)-3
+%                 [ir,ic] = find(( (alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad') ) &...
+%                     ( (alpha_e(:,:,k) - alpha_max_2D) > 0 ) );
+%                 A = zeros(size(x));
+%                 for i = 1:length(ic)
+%                     A(ir(i),ic(i)) = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.mu(k);
+%                 end
+% %                 p = polyfit(s.options.Psi(ic),obj.r_bar(ir),max(min(3,length(ir)-1),1));
+% %                 r_new = polyval(p,s.options.Psi(ic));
+% %                 polarplot(s.options.Psi(ic),r_new,'k');
+%                 contour(x,y,A','ShowText','on')
+%             end
+%             % Hide the POLAR function data and leave annotations
+%             set(h,'Visible','off')
+%             % Turn off axes and set square aspect ratio
+%             axis off
+%             axis image
+%             view([90 90])
+%             title('Sentiero di stallo')
 
         end
         

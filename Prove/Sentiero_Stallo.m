@@ -27,7 +27,7 @@ alpha_max_2D = convang(15,'deg','rad');
 % Video_xy.Quality = 100;
 % open(Video);
 % writeVideo(Video,getframe(figure(1)))
-% V_inf = s.V_inf*[1.01 :0.02:1.2]';
+% V_inf = s.V_inf*[1.01 :0.02:2]';
 % s=alphamap(rotore1,'Solve',{'T',W,...
 %     V_inf,Chi,f,BEMTset_rotor()});
 % % plot di alpha_e_max
