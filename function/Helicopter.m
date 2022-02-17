@@ -5,64 +5,49 @@ classdef Helicopter<Rotor
         % ---------------------------------------------------------------------
         % Flight Conditions
         % ---------------------------------------------------------------------
-        h        {mustBeFinite}   % [m]
-        V_max    {mustBePositive, mustBeFinite}   % [m/s]
+        h        {mustBeFinite}                     % [m]
+        % cancellare se non la usiamo
+        V_max    {mustBePositive, mustBeFinite}     % [m/s]
         % ---------------------------------------------------------------------
         % Mass
         % ---------------------------------------------------------------------
-        fuel_load {mustBePositive, mustBeFinite}
-        M_fuel    {mustBePositive, mustBeFinite}    % [kg]
-        M_nofuel  {mustBePositive, mustBeFinite}    % [kg]
+        % poi vediamo
+        fuel_load {mustBePositive, mustBeFinite, mustBeInRange(fuel_load,0,1,'exclude-lower')}
+        W_fuel    {mustBePositive, mustBeFinite}    % [N]
+        W_mtow    {mustBePositive, mustBeFinite}    % [N]
         % ---------------------------------------------------------------------
         % Geometry
         % ---------------------------------------------------------------------
         % Main Rotor
-        %     Main_rotor = Rotor();
-        R_MR      {mustBePositive, mustBeFinite}  % [m]
-        c_MR      {mustBePositive, mustBeFinite}  % [m]
-        N_MR      {mustBePositive, mustBeFinite}  % [\]
-        sigma_MR  {mustBePositive, mustBeFinite}  % [\]
+        MR = Rotor();
         % Tail rotor
-        %     Tail_rotor = Rotor();
-        R_TR      {mustBePositive, mustBeFinite}  % [m]
-        c_TR      {mustBePositive, mustBeFinite}  % [m]
-        N_TR      {mustBePositive, mustBeFinite}  % [\]
-        sigma_TR  {mustBePositive, mustBeFinite}  % [\]
-        % ---------------------------------------------------------------------
-        % Aerodynamics
-        % ---------------------------------------------------------------------
-        % Main Rotor
-        RPM_MR   {mustBePositive, mustBeFinite}   % [rpm]
-        n_MR     {mustBePositive, mustBeFinite}   % [1/s]
-        omega_MR {mustBePositive, mustBeFinite}   % [rad/s]
-        % Tail rotor
-        RPM_TR   {mustBePositive, mustBeFinite}   % [rpm]
-        n_TR     {mustBePositive, mustBeFinite}   % [1/s]
-        omega_TR {mustBePositive, mustBeFinite}   % [rad/s]
-        Cl = @(alpha) 2*pi*alpha;
-        Cd = @(alpha) 0.01*alpha./alpha;
-        K1_MR    {mustBePositive, mustBeFinite}
-        K_MR     {mustBePositive, mustBeFinite}
-        f        {mustBePositive, mustBeFinite}
-        K1_TR    {mustBePositive, mustBeFinite}
-        K_TR     {mustBePositive, mustBeFinite}
-        Cd_MR    {mustBePositive, mustBeFinite}
-        Cd_TR    {mustBePositive, mustBeFinite}
+        TR = Rotor();
+        % distance between rotor axes
+        lr         {mustBePositive, mustBeFinite}       % [m]
         % ---------------------------------------------------------------------
         % Propulsion
         % ---------------------------------------------------------------------
         engine_number {mustBePositive, mustBeFinite}  % [\]
+        SFC           {mustBePositive, mustBeFinite}  % [Kg/kW*h]?
         engine_power  {mustBePositive, mustBeFinite}  % [W]
         % ---------------------------------------------------------------------
         % Power
         % ---------------------------------------------------------------------
-        P_req_AUX    {mustBePositive, mustBeFinite}
-        eff_trassm   {mustBePositive, mustBeFinite}
+        P_req_AUX    {mustBePositive, mustBeFinite}   % [W]
+        % loss trasmission coefficient
+        eta_t        {mustBePositive, mustBeFinite,...
+            mustBeGreaterThan(eta_t,1)}               % [\]
         % ---------------------------------------------------------------------
-        % Analisi
+        % Correction coeffs
         % ---------------------------------------------------------------------
-        Analisi
-
+        % fattore di correzione dovuto alla non-uniformita' dell'induzione
+        % sul rotore reale: Pc_i = k*lam_i*T_c
+        k_i_MR  = 1.2
+        k_i_TR  = 1.4
+        % Fattore di scorrimento per il calcolo della potenza parassita
+        % Pc0 = sigma*Cd_mean/8*(1+k*mu^2)
+        k_mu_MR = 4.7
+        k_mu_TR = 4.7
     end
     properties(SetAccess = private, GetAccess = public)
         % Access denied: there's no way fo the user to change the value of
@@ -73,93 +58,69 @@ classdef Helicopter<Rotor
         press     {mustBePositive, mustBeFinite}% pressione dell'aria
         sound_vel {mustBePositive, mustBeFinite}% velocità del suono dell'aria
         temp      {mustBePositive, mustBeFinite}% temperatura dell'aria
-        n_vel     = 50;
         n_analisi = 0;
         % Mass
         M         {mustBePositive, mustBeFinite}
         W         {mustBePositive, mustBeFinite}       % [N]
-        % Geometry
-        D_MR      {mustBePositive, mustBeFinite}       % [m]
-        A_D_MR    {mustBePositive, mustBeFinite}       % [m^2]
-        D_TR      {mustBePositive, mustBeFinite}       % [m]
-        A_D_TR    {mustBePositive, mustBeFinite}       % [m^2]
-        b         {mustBePositive, mustBeFinite}       % [m]
-        % Aerodynamics
-        % tip speeds
-        omegaR_MR {mustBePositive, mustBeFinite}       % [m/s]
-        omegaR_TR {mustBePositive, mustBeFinite}       % [m/s]
-        V_inf     {mustBePositive, mustBeFinite}       % [m/s]
-        % Propulsion
-        available_power {mustBePositive, mustBeFinite} % [W]
-             
+        % ---------------------------------------------------------------------
+        % Analisi
+        % ---------------------------------------------------------------------
+        Analisi    
     end
     methods
-        % compute some mass and geometric property
-        function obj = derived_properties(obj)
-            % Mass
-            obj.M         = obj.fuel_load*obj.M_fuel + obj.M_nofuel;
-            obj.W         = obj.M*9.81;                             % [N]
-            % Geometry
-            obj.D_MR      = obj.R_MR*2;                             % [m]
-            obj.A_D_MR    = obj.c_MR*obj.R_MR*obj.N_MR;             % [m^2]
-            obj.D_TR      = obj.R_MR*2;                             % [m]
-            obj.A_D_TR    = obj.c_TR*obj.R_TR*obj.N_TR;             % [m^2]
-            % Distance from the cg to the center of the tail rotor,
-            % approximated formula, to be used when b is unknown
-            obj.b         = obj.R_MR + obj.R_TR + 0.5;              % [m]
-            % Aerodynamics
-            % tip speeds
-            obj.omegaR_MR = obj.omega_MR;                           % [m/s]
-            obj.omegaR_TR = obj.omega_TR;                           % [m/s]
-            obj.V_inf     = linspace(0,obj.V_max,obj.n_vel);        % [m/s]
-            % Propulsion
-            obj.available_power = ...
-                obj.engine_number*obj.engine_power;                 % [W]
-        end
-
+        %% Auxiliary methods
         % compute ambient conditions
         function obj = ambient(obj)
             [obj.temp, obj.sound_vel, obj.press, obj.rho] = atmosisa(obj.h);
         end
-
-        % compute angular velocity Main Rotor
-        function obj = rot_vel_MR(obj,valIN,val)
-            switch valIN
-                case 'RPM'
-                    obj.RPM_MR   = val;
-                    obj.n_MR     = obj.RPM_MR/60;
-                    obj.omega_MR = obj.n_MR*2*pi;
-                case 'n'
-                    obj.n_MR    = val;
-                    obj.RPM_MR   = obj.n_MR*60;
-                    obj.omega_MR = obj.n_MR*2*pi;
-                case 'omega'
-                    obj.omega_MR = val;
-                    obj.n_MR     = obj.omega_MR/(2*pi);
-                    obj.RPM_MR   = obj.n_MR*60;
-                otherwise
-                    mustBeMember(valIN,{'RPM','n','omega'})
+        %% Solver methods
+        function obj = Required_Power(obj,h,V_inf_Vec,Chi,T,f)
+            arguments
+                obj
+                h         {mustBeNonnegative,mustBeFinite}
+                V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
+                Chi       {mustBeFinite}
+                T         {mustBePositive,mustBeFinite}
+                f         {mustBePositive, mustBeFinite}
+            end
+            V_inf_Vec = sort(V_inf_Vec); flag = sum(V_inf_Vec ~= 0);
+            V_inf_Vec = V_inf_Vec(V_inf_Vec ~= 0);
+            %--------------------------------------------------------------
+            % Main Rotor
+            obj.MR.h     = h;                   % set altitude
+            obj.MR       = obj.MR.ambient();    % compute ambient properties
+            options      = BEMTset_rotor();
+            options.k_i  = obj.k_i_MR;
+            options.k_mu = obj.k_mu_MR;
+            obj.MR       = obj.MR.BEMT_articulated('T',T,V_inf_Vec,Chi,f,options);
+            s            = obj.MR.Analisi_articulated{obj.MR.n_analisi_articulated,1};
+            P_MR         = s.Pc_vec * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            Pi_MR        = s.Pci_vec * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            P0_MR        = s.Pc0_vec * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            P_fus        = s.Pc_fus_Vec * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            Q_MR         = P_MR/obj.MR.omega;
+            % Tail Rotor
+            T_TR         = Q_MR/obj.lr;
+            Tc_TR        = T_TR/( obj.rho*pi*obj.TR.R^4*obj.MR.omega^2 );
+            v_i_TR       = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
+                            4*(T_TR.*0.5/obj.rho/(pi*obj.TR.R^2))^4)));
+            Pi_TR        = obj.ki_TR*T_TR*v_i_TR;
+            mu_TR        = V_inf_vec/obj.TR.omega/obj.TR.R;
+            P0_TR        = (obj.TR.Cd_mean*obj.TR.sigma*(1 + obj.k_mu_TR*mu_TR.^2)/8)...
+                            *(obj.rho*pi*obj.TR.R^5*obj.TR.omega^3);
+            P_TR         = Pi_TR + P0_TR;
+            if flag ~= 0
+                % nel caso in cui venga richiesta una condizione di hover
+                % To do : MR in hover e controllare BEMT_Artic.. in FF
+                % livellato
             end
         end
-            % compute angular velocity Tail Rotor
-        function obj = rot_vel_TR(obj,valIN,val)
-            switch valIN
-                case 'RPM'
-                    obj.RPM_TR   = val;
-                    obj.n_TR     = obj.RPM_TR/60;
-                    obj.omega_TR = obj.n_TR*2*pi;
-                case 'n'
-                    obj.n_TR    = val;
-                    obj.RPM_TR   = obj.n_TR*60;
-                    obj.omega_TR = obj.n_TR*2*pi;
-                case 'omega'
-                    obj.omega_TR = val;
-                    obj.n_TR     = obj.omega_TR/(2*pi);
-                    obj.RPM_TR   = obj.n_TR*60;
-                otherwise
-                    mustBeMember(valIN,{'RPM','n','omega'})
-            end
-        end
+        
+        
+        
+        
+        
+        
         % required power for level flight
         function [P_induced_MR, P_parasite_MR, P_fusolage_MR,...
                 P_induced_TR, P_parasite_TR, P_req_MR,...
@@ -171,7 +132,7 @@ classdef Helicopter<Rotor
             % velocity vector, that can be changed within the class
             % Input:
             % -
-            % Input:
+            % Output:
             % - P_induced_MR  : induced power by the main rotor
             % - P_parasite_MR : parasite power of the main rotor
             % - P_fusolage_MR : parasite power of the fusolage and other
