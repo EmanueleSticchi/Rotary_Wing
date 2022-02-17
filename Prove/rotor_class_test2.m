@@ -3,8 +3,8 @@ clear all; close all; clc;
 rotore1 = Rotor();
 % working conditions and other inputs
 dim_vel = 50;
-V_inf   = linspace(0.1,convvel(293,'km/h','m/s'),dim_vel);
-Chi     = convang(5,'deg','rad');
+V_inf   = linspace(0,convvel(293,'km/h','m/s'),dim_vel);
+Chi     = convang(2,'deg','rad'); % non zero
 f       = 3;
 W       = 75278;
 rotore1.theta_t = convang(-8,'deg','rad');

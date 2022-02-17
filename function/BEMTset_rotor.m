@@ -1,9 +1,11 @@
 classdef BEMTset_rotor
     properties
+        %% Salita assiale
         % flag for Prandtl correction
         P_correction  {mustBeMember(P_correction,{'on','off',})} = 'off';
         % integrals upper bound for the Pradtl Correction 
         B       (1,1) {mustBeInRange(B,0,1,'exclude-lower')}     = 1;
+        %% Articulated rotor in forward flight
         % Fattore di scorrimento per il calcolo della potenza parassita
         % Pc0 = sigma*Cd_mean/8*(1+k*mu^2)
         k_mu                                                     =3;

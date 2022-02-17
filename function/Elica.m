@@ -15,17 +15,12 @@ classdef Elica
         RPM   {mustBePositive, mustBeFinite}       % Giri al minuto
         n     {mustBePositive, mustBeFinite}       % Giri al secondo
         omega {mustBePositive, mustBeFinite}%Velocità di rotazione, [rad/s]
-        h {mustBeNonnegative, mustBeFinite} = 0 % Quota di funzionamento
-        rho   {mustBePositive, mustBeFinite}=1.23  % Densità dell'aria 
+        h {mustBeNonnegative, mustBeFinite} = 0 % Quota di funzionamento [m]
     % ---------------------------------------------------------------------
     % Aerodinamica
     % ---------------------------------------------------------------------
         Cl= @(alpha) 2*pi*alpha;
         Cd= @(alpha) 0.01*alpha./alpha;
-    % ---------------------------------------------------------------------
-    % Analisi
-    % ---------------------------------------------------------------------
-        Analisi
         
     end
     properties(SetAccess = private,GetAccess=public)
@@ -34,6 +29,15 @@ classdef Elica
         n_r   
         %
         n_analisi = 0
+        % ambient conditons
+        rho       {mustBePositive, mustBeFinite}
+        press     {mustBePositive, mustBeFinite}
+        sound_vel {mustBePositive, mustBeFinite}
+        temp      {mustBePositive, mustBeFinite}
+        % ---------------------------------------------------------------------
+        % Analisi
+        % ---------------------------------------------------------------------
+        Analisi
     end
     properties(SetAccess=private,GetAccess=private)
         Des

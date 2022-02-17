@@ -264,7 +264,7 @@ classdef Rotor
             for i = 1:length(V_inf_Vec)
                 iter      = 0;        % contatore iterazioni
                 iter_cond = 1;        % residuo
-                V_inf     = V_inf_Vec(i);
+                V_inf     = V_inf_Vec(i)*cos(chi);
                 alpha_TPP = 0;        % valore di primo tentativo
                 lam       = 0;        % valore di primo tentativo
                 if isequal(valIN,"Theta")
@@ -287,7 +287,7 @@ classdef Rotor
                     else
                         lam_i = Tc/( 2*sqrt(mu^2 + lam^2) );
                     end
-                    lam      = mu*tan(alpha_TPP) + lam_i;
+                    lam = mu*tan(alpha_TPP) + lam_i;
                     if isequal(valIN,"T")
                         theta0   = ( 3 /( 1 + 1.5*mu.^2 ) )*...
                             ( (2*Tc)/(obj.sigma*obj.Cl_alpha) ...
@@ -331,8 +331,7 @@ classdef Rotor
                     lam_temp = lam;
                     lam      = lam_i + lam_c + mu*( Hc/Tc ) + ...
                         mu*( D_fs/(Tc*obj.rho*obj.omega^2*obj.R^4*pi) );
-                    alpha_TPP= atan((lam - Tc/(2*sqrt( mu^2 + lam^2 )))/mu);
-
+                    alpha_TPP= atan2((lam - Tc/(2*sqrt( mu^2 + lam^2 ))),mu);
                     iter_cond= abs(lam - lam_temp);
                     iter     = iter + 1;
                 end
