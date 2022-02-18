@@ -214,16 +214,17 @@ classdef Elica2
                     2*pi*alpha0*cos(phi0) - 0.01*sin(phi0);...
                     2*pi*alpha0*sin(phi0) + 0.01*cos(phi0);...
                     0.01;...
-                    0.0001];
+                    0;...
+                    J(1)];
         m = length(x);    Qk=zeros(m,m);
         for jdx=1:length(J)
             for idx =1:obj.n_r
                 
                 x0 = x;  % initialize solution
                 x1 = 2*x;
-                F0=obj.ffunc(x0,J(jdx),idx);
+                F0=obj.ffunc(x0,J,idx);
                 if max(abs(F0))>options.toll
-                    F1=obj.ffunc(x1,J(jdx),idx);
+                    F1=obj.ffunc(x1,J,idx);
                     while max(abs(F1))>options.toll
                         for i =1:m
                             df = F1(i) - F0(i);
@@ -233,7 +234,7 @@ classdef Elica2
                         end
                         x0=x1; F0=F1;
                         x1 = x1 - Qk\F1;
-                        F1=obj.ffunc(x1,J(jdx),idx);
+                        F1=obj.ffunc(x1,J,idx);
                     end
                 else
                     x1=x0;

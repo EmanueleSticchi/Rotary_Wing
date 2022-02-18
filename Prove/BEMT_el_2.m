@@ -30,7 +30,7 @@ el.Cd=@(alpha,M,Re,r_bar) CD_(alpha);
 %% Analisi BEMT --------------------------------------------------------
 
 options=BEMTset();
-el=el.BEMT(J,options);
+% el=el.BEMT(J,options);
 options.P_correction='on';
 el=el.BEMT(J,options);
 %% Post - Processing
@@ -49,7 +49,7 @@ log=el.Analisi{an, 1}.CT>=0;
 plotta(J(log),el.Analisi{1, 1}.eta(log,1),{'J = $ \frac{V_{\infty}}{nD}$';'$\eta$ = $\frac{TV_{\infty}}{P}$'})
 yline(0);
 %
-idx=1;
+idx=3;
 figure(4)
 plotta(el.r_bar,el.Analisi{an,1}.dCt_dr_bar(idx,:),{'$ \bar{r}$';'$\frac{dC_T}{d\bar{r}}$'})
 yline(0);

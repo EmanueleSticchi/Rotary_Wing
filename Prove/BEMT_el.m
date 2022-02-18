@@ -18,14 +18,14 @@ el=el.sigma_();                 % Solidità
 
 % Di funzionamento
 el=el.rot_vel('RPM',2000);
-el.rho=1.23;
+el=el.altitude(0);
 J=[0.2:0.05:1.3];
 % Aerodinamici
 % Cl=@(alpha) interp1(data1,data2,alpha);
 % Cd=@(alpha) interp1(data1,data3,alpha);
 load Aero_NACA16212.mat
-el.Cl=@(alpha) CL_(alpha);
-el.Cd=@(alpha) CD_(alpha);
+el.Cl=@(alpha,r_bar) CL_(alpha);
+el.Cd=@(alpha,r_bar) CD_(alpha);
 
 %% Analisi BEMT --------------------------------------------------------
 alpha0=-2*pi/180;
