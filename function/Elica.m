@@ -19,8 +19,8 @@ classdef Elica
     % ---------------------------------------------------------------------
     % Aerodinamica
     % ---------------------------------------------------------------------
-        Cl= @(alpha) 2*pi*alpha;
-        Cd= @(alpha) 0.01*alpha./alpha;
+        Cl= @(alpha,r_bar) 2*pi*alpha;
+        Cd= @(alpha,r_bar) 0.01*alpha./alpha;
         
     end
     properties(SetAccess = private,GetAccess=public)
@@ -34,6 +34,7 @@ classdef Elica
         press     {mustBePositive, mustBeFinite}
         sound_vel {mustBePositive, mustBeFinite}
         temp      {mustBePositive, mustBeFinite}
+        mu_visc   {mustBePositive, mustBeFinite}
         % ---------------------------------------------------------------------
         % Analisi
         % ---------------------------------------------------------------------
@@ -73,7 +74,7 @@ classdef Elica
             end
         end
         % assegna le prestazioni aerodinamiche di profilo in funzione di 
-        % dati tabulari
+        % dati tabulari... Da modificare
         function obj = set_aero(obj,valpha,vCl,vCd)
             % v_alpha   vettore degli angoli di attacco in rad
             % vCl       vettore dei Cl (stessa dimensione di v_alpha)
@@ -87,6 +88,9 @@ classdef Elica
         function obj = altitude(obj,h)
             obj.h=h;
             [obj.temp, obj.sound_vel, obj.press, obj.rho] = atmosisa(obj.h);
+            T0  = 288.15;
+            mu0 = 1.79e-5;
+            obj.mu_visc=mu0*(obj.temp/T0)^1.5*((T0+110)/(obj.temp+110));
         end
         
         % ----------------------------------------------------------------
@@ -104,8 +108,10 @@ classdef Elica
             % calcolo dell'angolo di Inflow
             phi=obj.theta(idx)-alpha;
             % calcolo dei coefficienti aerodinamici
-            lambda1=obj.Cl(alpha)*cos(phi)-obj.Cd(alpha)*sin(phi);
-            lambda2=obj.Cl(alpha)*sin(phi)+obj.Cd(alpha)*cos(phi);
+            lambda1= obj.Cl(alpha,obj.r_bar(idx))*cos(phi)...
+                    -obj.Cd(alpha,obj.r_bar(idx))*sin(phi);
+            lambda2=obj.Cl(alpha,obj.r_bar(idx))*sin(phi)...
+                    +obj.Cd(alpha,obj.r_bar(idx))*cos(phi);
             % calcolo delle induzioni
             ka  = 0.25*obj.sigma(idx)*lambda1/sin(phi)^2;
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
@@ -167,6 +173,7 @@ classdef Elica
             alpha1 (1,1){mustBeReal,mustBeFinite}=10*pi/180; 
             options = BEMTset();
         end
+        % -----------------------------------------------------------------
             for jdx=1:length(J)
                 for idx =1:obj.n_r
                     [~,~,alpha,phi,a,ap,lambda1,lambda2]=BEMT_rJ_fix(obj,...
