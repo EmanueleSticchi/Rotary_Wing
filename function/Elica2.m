@@ -155,36 +155,63 @@ classdef Elica2
         end
         
         
-        function F = ffunc(obj,x,J,idx)
+        function [F,ap,V_eff,M,Re,phi,alpha,lambda1,lambda2,ka,kap] = ffunc(obj,x,J,idx)
             %----
-            alpha   = x(1);
-            phi     = x(2);
-            lambda1 = x(3);
-            lambda2 = x(4);
-            a       = x(5);
-            ap      = x(6);
+%             alpha   = x(1);
+%             phi     = x(1);
+%             lambda1 = x(3);
+%             lambda2 = x(4);
+            a       = x(1);
+%             ap      = x(2);
             %---
 
             V_inf = J *obj.n*obj.D;
-            V_eff = sqrt(V_inf^2*(1+a)^2 + (obj.omega*obj.r_bar(idx)*(1 - ap))^2);
+            ap = 0.5 - sqrt(0.25 - (1+a)*a/(obj.omega*obj.r_bar(idx)*obj.R/V_inf)^2);
+            V_eff = sqrt((V_inf*(1+a))^2 + (obj.omega*obj.r_bar(idx)*obj.R*(1 - ap))^2);
             M  = V_eff/obj.sound_vel;
             Re = V_eff * obj.rho * obj.c(idx)/ obj.mu_visc;
+            phi = atan2(V_inf*(1+a),(obj.omega*obj.r_bar(idx)*obj.R*(1 - ap)));
+            alpha = obj.theta(idx) - phi;
+            lambda1 = (obj.Cl(alpha,M,Re,obj.r_bar(idx))*cos(phi)...
+                            -obj.Cd(alpha,M,Re,obj.r_bar(idx))*sin(phi));
+            lambda2 = (obj.Cl(alpha,M,Re,obj.r_bar(idx))*sin(phi)...
+                            +obj.Cd(alpha,M,Re,obj.r_bar(idx))*cos(phi));
             ka  = 0.25*obj.sigma(idx)*lambda1/sin(phi)^2;
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
             
-            F(1,1) = alpha   - (obj.theta(idx) - phi);
-            F(2,1) = phi     - atan2(V_inf*(1+a),(obj.omega*obj.r_bar(idx)*(1 - ap)));
-            F(3,1) = lambda1 - (obj.Cl(alpha,M,Re,obj.r_bar(idx))*cos(phi)...
-                            -obj.Cd(alpha,M,Re,obj.r_bar(idx))*sin(phi));
-            F(4,1) = lambda2 - (obj.Cl(alpha,M,Re,obj.r_bar(idx))*sin(phi)...
-                            +obj.Cd(alpha,M,Re,obj.r_bar(idx))*cos(phi));
-            F(5,1) = a       - ka/(1-ka);
-            F(6,1) = ap      - kap/(1+kap);
+%             F(1,1) = alpha   - (obj.theta(idx) - phi);
+%             F(1,1) = phi     - atan2(V_inf*(1+a),(obj.omega*obj.r_bar(idx)*obj.R*(1 - ap)));
+%             F(3,1) = lambda1 - (obj.Cl(alpha,M,Re,obj.r_bar(idx))*cos(phi)...
+%                             -obj.Cd(alpha,M,Re,obj.r_bar(idx))*sin(phi));
+%             F(4,1) = lambda2 - (obj.Cl(alpha,M,Re,obj.r_bar(idx))*sin(phi)...
+%                             +obj.Cd(alpha,M,Re,obj.r_bar(idx))*cos(phi));
+            F(1,1) = a       - ka/(1-ka);
+%             F(2,1) = ap      - kap/(1+kap);
             
 %             F = sum(F.^2);
         end
         
-        
+%         function x = solve(obj,x0,A,b,toll)
+%             res=1;
+%             it=0;
+%             L = diag(diag(A));
+%             L = tril(A);
+%             U = -A + L;
+%             invL = inv(L);
+%             while res > toll
+%                 it =it +1;
+% %                     for i = 1 : 6
+% %                         ind = [1:i-1,i+1:6];
+% %                         x0(i) = 1/A(i,i)*(b(i) - A(i,ind)*x0(ind));
+% %                     end
+%                 x1 =  invL*(U*x0 + b);
+%                 d = max(abs(x1 - x0))
+%                 x0 = x1;
+%                 res = max(abs(((A*x0)./b - 1)))
+%                 
+%             end
+%             x = x0;
+%         end
         
         
         
@@ -207,45 +234,26 @@ classdef Elica2
             options = BEMTset();
         end
         % -----------------------------------------------------------------
-        alpha0 = convang(2,'deg','rad');
-        phi0   = obj.theta(1) - alpha0;
-        x      = [ alpha0; ...
-                    phi0;    ...
-                    2*pi*alpha0*cos(phi0) - 0.01*sin(phi0);...
-                    2*pi*alpha0*sin(phi0) + 0.01*cos(phi0);...
-                    0.01;...
-                    0.0001];
-        m = length(x);    Qk=zeros(m,m);
+
         for jdx=1:length(J)
             for idx =1:obj.n_r
-                
-                x0 = x;  % initialize solution
-                x1 = 2*x;
+                x0 = 0.01;  % initialize solution
+                x1 = 0.02;
                 F0=obj.ffunc(x0,J(jdx),idx);
                 if max(abs(F0))>options.toll
                     F1=obj.ffunc(x1,J(jdx),idx);
                     while max(abs(F1))>options.toll
-                        for i =1:m
-                            df = F1(i) - F0(i);
-                            for j =1:m
-                                Qk(i,j) = df/(x1(j) - x0(j));
-                            end
-                        end
+                        qk=(F1-F0)/(x1-x0);
                         x0=x1; F0=F1;
-                        x1 = x1 - Qk\F1;
+                        x1=x1-F1/qk;
                         F1=obj.ffunc(x1,J(jdx),idx);
                     end
                 else
                     x1=x0;
                 end
                 x=x1;
-                
-                alpha   = x(1);
-                phi     = x(2);
-                lambda1 = x(3);
-                lambda2 = x(4);
-                a       = x(5);
-                ap      = x(6);
+                [~,ap,V_eff,M,Re,phi,alpha,lambda1,lambda2,ka,kap] = ffunc(obj,x,J(jdx),idx);
+                a       = x;
                 
                 s.alpha(jdx,idx)=alpha;
                 s.phi(jdx,idx)=phi;

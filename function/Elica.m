@@ -9,6 +9,7 @@ classdef Elica
         theta (:,1){mustBeReal, mustBeFinite}%Angoli di calettamento, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite}% Corda delle sezioni, [m]
         sigma (:,1){mustBeNonnegative, mustBeFinite}       % Solidità
+        LAMBDA (:,1){mustBeReal, mustBeFinite}      % Angolo di Freccia [rad]
     % --------------------------------------------------------------------- 
     % Funzionamento
     % ---------------------------------------------------------------------
@@ -19,8 +20,8 @@ classdef Elica
     % ---------------------------------------------------------------------
     % Aerodinamica
     % ---------------------------------------------------------------------
-        Cl= @(alpha,r_bar) 2*pi*alpha;
-        Cd= @(alpha,r_bar) 0.01*alpha./alpha;
+        Cl= @(alpha,r_bar,M,Re) 2*pi*alpha;
+        Cd= @(alpha,r_bar,M,Re) 0.01*alpha./alpha;
         
     end
     properties(SetAccess = private,GetAccess=public)
@@ -96,7 +97,7 @@ classdef Elica
         % ----------------------------------------------------------------
         %% Teoria dell'elemento di pala generale
         % ----------------------------------------------------------------
-        function [f,J_,alpha,phi,a,ap,lambda1,lambda2]=func(obj,alpha,J,idx,options)
+        function [f,J_,alpha,phi,a,ap,lambda1,lambda2,M,Re]=func(obj,alpha,J,idx,options)
         % Funzione da annullare per il calcolo delle prestazioni dell'elica
         % Input:
         % - alpha,           valore di alpha di tentativo;
@@ -105,13 +106,17 @@ classdef Elica
         % - idx,             Indice della stazione radiale
         % - options          Analisys options (see BEMTset)
         % -----------------------------------------------------------------
+            V_inf = J *obj.n*obj.D;
+            V_eff = sqrt(V_inf^2 + (obj.omega*obj.r_bar(idx)*obj.R)^2)*cos(obj.LAMBDA(idx)); % trascuro a e a'
+            M  = V_eff/obj.sound_vel;
+            Re = V_eff * obj.rho * obj.c(idx)/ obj.mu_visc;
             % calcolo dell'angolo di Inflow
             phi=obj.theta(idx)-alpha;
             % calcolo dei coefficienti aerodinamici
-            lambda1= obj.Cl(alpha,obj.r_bar(idx))*cos(phi)...
-                    -obj.Cd(alpha,obj.r_bar(idx))*sin(phi);
-            lambda2=obj.Cl(alpha,obj.r_bar(idx))*sin(phi)...
-                    +obj.Cd(alpha,obj.r_bar(idx))*cos(phi);
+            lambda1= obj.Cl(alpha,obj.r_bar(idx),M,Re)*cos(phi)...
+                    -obj.Cd(alpha,obj.r_bar(idx),M,Re)*sin(phi);
+            lambda2=obj.Cl(alpha,obj.r_bar(idx),M,Re)*sin(phi)...
+                    +obj.Cd(alpha,obj.r_bar(idx),M,Re)*cos(phi);
             % calcolo delle induzioni
             ka  = 0.25*obj.sigma(idx)*lambda1/sin(phi)^2;
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
@@ -124,7 +129,7 @@ classdef Elica
             % funzione da annullare
             f=J-J_;
         end
-        function [f,J_,alpha,phi,a,ap,lambda1,lambda2]=BEMT_rJ_fix(obj,...
+        function [f,J_,alpha,phi,a,ap,lambda1,lambda2,M,Re]=BEMT_rJ_fix(obj,...
                                                 alpha0,alpha1,J,idx,options)
         % Calcola le prestazioni dell'elica per una sola stazione radiale
         %  e per un solo valore del rapporto di funzionamento con il metodo
@@ -151,7 +156,7 @@ classdef Elica
             else
                 alpha1=alpha0;
             end
-            [f,J_,alpha,phi,a,ap,lambda1,lambda2]=obj.func(alpha1,J,idx,options);
+            [f,J_,alpha,phi,a,ap,lambda1,lambda2,M,Re]=obj.func(alpha1,J,idx,options);
 
         end
         function obj=BEMT(obj,J,alpha0,alpha1,options)
@@ -176,7 +181,7 @@ classdef Elica
         % -----------------------------------------------------------------
             for jdx=1:length(J)
                 for idx =1:obj.n_r
-                    [~,~,alpha,phi,a,ap,lambda1,lambda2]=BEMT_rJ_fix(obj,...
+                    [~,~,alpha,phi,a,ap,lambda1,lambda2,M,Re]=BEMT_rJ_fix(obj,...
                                            alpha0,alpha1,J(jdx),idx,options);
                     s.alpha(jdx,idx)=alpha;
                     s.phi(jdx,idx)=phi;
@@ -184,6 +189,8 @@ classdef Elica
                     s.ap(jdx,idx)=ap;
                     s.lambda1(jdx,idx)=lambda1;
                     s.lambda2(jdx,idx)=lambda2;
+                    s.Mach(jdx,idx) = M;
+                    s.Re(jdx,idx) = Re;
                     % calcolo delle prestazioni
                     s.dCt_dr_bar(jdx,idx) = pi^3/4*obj.sigma(idx)*...
                         lambda1*obj.r_bar(idx)^3*(1-ap)^2/cos(phi)^2;
@@ -324,7 +331,7 @@ classdef Elica
                 % scale airfoil
                 x_rot=data_rot(:,1)*obj.c(i);
                 z_rot=data_rot(:,2)*obj.c(i);
-                X(:,i)=x_rot-mean(x_rot);
+                X(:,i)=x_rot-mean(x_rot) - obj.r_bar(i)*obj.R*tan(obj.LAMBDA(i));
                 Z(:,i)=z_rot;
             end
 
@@ -361,7 +368,8 @@ classdef Elica
             [Xh,Yh]=meshgrid(xh,yh);
             % estrusion of the th Hub Disc
             k=20;
-            Zh=-k*Xh.^2-k*Yh.^2+0.2;
+            Zh =-k*Xh.^2-k*Yh.^2+0.2;   
+            
             hold on
             surf(Xh,Yh,Zh)
             daspect([1 1 1])
