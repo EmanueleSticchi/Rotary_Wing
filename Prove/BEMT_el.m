@@ -15,6 +15,7 @@ el.theta=pi/180*....            % Angolo di calettamento, [rad]
     linspace(50,15,el.n_r)';
 el.c=0.1*ones(el.n_r,1);        % Corda delle sezioni, [m]
 el=el.sigma_();                 % Solidità
+el.LAMBDA = zeros(el.n_r,1);
 
 % Di funzionamento
 el=el.rot_vel('RPM',2000);
@@ -24,8 +25,8 @@ J=[0.2:0.05:1.3];
 % Cl=@(alpha) interp1(data1,data2,alpha);
 % Cd=@(alpha) interp1(data1,data3,alpha);
 load Aero_NACA16212.mat
-el.Cl=@(alpha,r_bar) CL_(alpha);
-el.Cd=@(alpha,r_bar) CD_(alpha);
+el.Cl=@(alpha,r_bar,M,Re) CL_(alpha);
+el.Cd=@(alpha,r_bar,M,Re) CD_(alpha);
 
 %% Analisi BEMT --------------------------------------------------------
 alpha0=-2*pi/180;
@@ -34,9 +35,12 @@ options=BEMTset();
 el=el.BEMT(J,alpha0,alpha1,options);
 options.P_correction='on';
 el=el.BEMT(J,alpha0,alpha1,options);
+% el.LAMBDA(el.r_bar > 0.9 ) = linspace(0,2.5*pi/180,sum(el.r_bar >0.9)); 
+el.LAMBDA = linspace(0,20*pi/180,el.n_r);
+el=el.BEMT(J,alpha0,alpha1,options);
 %% Post - Processing
-an=2;
-for an=1:2
+an=3;
+for an=1:3
 figure(1)
 plotta(J,el.Analisi{an, 1}.CT,{'J = $ \frac{V_{\infty}}{nD}$';'$C_T$ = $\frac{T}{\rho n^2 D^4}$'})
 yline(0);
@@ -50,7 +54,7 @@ log=el.Analisi{an, 1}.CT>=0;
 plotta(J(log),el.Analisi{1, 1}.eta(log,1),{'J = $ \frac{V_{\infty}}{nD}$';'$\eta$ = $\frac{TV_{\infty}}{P}$'})
 yline(0);
 %
-idx=1;
+idx=10;
 figure(4)
 plotta(el.r_bar,el.Analisi{an,1}.dCt_dr_bar(idx,:),{'$ \bar{r}$';'$\frac{dC_T}{d\bar{r}}$'})
 yline(0);
@@ -63,7 +67,20 @@ yline(0);
 figure(7)
 plotta(el.r_bar,el.Analisi{an,1}.eta_e(idx,:),{'$ \bar{r}$';'$\eta_e$'})
 yline(0);
+
+figure(8)
+plotta(el.r_bar,el.Analisi{an,1}.Mach(idx,:),{'$ \bar{r}$';'$M$'})
+figure(9)
+plotta(el.r_bar,el.Analisi{an,1}.Re(idx,:),{'$ \bar{r}$';'$Re$'})
 end
+
+%% MODEL 3D
+data=importdata('NACA 16-212.dat');
+x=data.data(:,1);
+z=data.data(:,2);
+figure
+el.Model3D(x,z)
+
 
 %% Function ---------------------------------------------------------
 function CL=CL_(alpha)

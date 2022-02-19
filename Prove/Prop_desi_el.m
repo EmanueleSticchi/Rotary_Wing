@@ -10,17 +10,18 @@ el=el.r_((0.1:0.01:1)');
 el.N=4;                         % Blade Number    
 el.D=1.66;                         % Propeller diameter, [m]
 el.R=0.5*el.D;                  % Propeller radius, [m]
-
+% el.LAMBDA = zeros(el.n_r,1);
+el.LAMBDA = linspace(0,20*pi/180,el.n_r);
 % Aerodinamici
 % Cl=@(alpha) interp1(data1,data2,alpha);
 % Cd=@(alpha) interp1(data1,data3,alpha);
 load Aero_NACA16212.mat
-el.Cl=@(alpha) CL_(alpha);
-el.Cd=@(alpha) CD_(alpha);
+el.Cl=@(alpha,r_bar,M,Re) CL_(alpha);
+el.Cd=@(alpha,r_bar,M,Re) CD_(alpha);
 
 % Operating condition
 el=el.rot_vel('RPM',2000);
-el.rho=1.23;
+el=el.altitude(0);
 J=0.5;
 V_inf=J*el.n*el.D;
 T=1000;                        % Thrust, [N]
