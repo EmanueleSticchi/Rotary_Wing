@@ -65,13 +65,20 @@ classdef Helicopter<Rotor
         % ---------------------------------------------------------------------
         % Analisi
         % ---------------------------------------------------------------------
-        Analisi    
+        % Power Analysis
+        PA  
+        % Number of power analisys
+        n_PA
     end
     methods
         %% Auxiliary methods
         % compute ambient conditions
-        function obj = ambient(obj)
+        function obj = ambient(obj,h)
+            obj.h = h;
             [obj.temp, obj.sound_vel, obj.press, obj.rho] = atmosisa(obj.h);
+%             T0  = 288.15;
+%             mu0 = 1.79e-5;
+%             obj.mu_visc=mu0*(obj.temp/T0)^1.5*((T0+110)/(obj.temp+110));
         end
         %% Solver methods
         function obj = Required_Power(obj,h,V_inf_Vec,Chi,T,f)
@@ -122,16 +129,16 @@ classdef Helicopter<Rotor
         
         
         % required power for level flight
-        function [P_induced_MR, P_parasite_MR, P_fusolage_MR,...
-                P_induced_TR, P_parasite_TR, P_req_MR,...
-                P_req_TR, P_req] = Req_power_level_flight(obj)
+        function obj = Req_power_level_flight(obj,h,V_inf_Vec,Chi,T,f,valIN,PoVc)
             %------------------------------------------------------------------
             % This function compute the required power curve in the
             % Power-Velocity plane and stores them inside arrays. The
             % arrays have dimensions 1 x n_vel, the dimension of the
             % velocity vector, that can be changed within the class
             % Input:
-            % -
+            % - h
+            % - V_inf_Vec
+            % - Chi
             % Output:
             % - P_induced_MR  : induced power by the main rotor
             % - P_parasite_MR : parasite power of the main rotor
@@ -140,31 +147,66 @@ classdef Helicopter<Rotor
             % - P_induced_TR  : induced power by the tail rotor
             % - P_parasite_TR : parasite power of the tail rotor
             %-------------------------------------------------------------------
+            arguments
+                obj
+                h         {mustBeNonnegative,mustBeFinite}
+                V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
+                Chi       {mustBeFinite}
+                T         {mustBePositive,mustBeFinite}
+                f         {mustBePositive, mustBeFinite}
+                valIN     {mustBeMember(valIN,{'P','Chi'})}
+                PoVc     (1,1) {mustBeFinite,mustBeMember}
+            end
+            
             % required thrust
-            T_TPP     = obj.W;
-            C_T_MR    = T_TPP/( obj.rho*obj.A_D_MR*( obj.omegaR_MR )^2 );
-            mu        = obj.V_inf/( obj.omegaR_MR );
-            v_i_MR    = C_T_MR./( 2*mu );
+            T_TPP     = T;
+            Tc_MR    = T_TPP/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
+            mu       = V_inf_Vec/( obj.MR.omega*obj.MR.R );
+            lam_i_MR = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
+                            4*(T_TPP.*0.5/obj.rho/(pi*obj.MR.R^2))^4)));
+            D_fs     = 0.5*obj.rho*V_inf_Vec.^2*f;
 
+            
             % required power (Main rotor) [W]
-            % P_indotta_MR   = W^2./( 2*rho*A_D*V_inf );
-            P_induced_MR   = obj.K_MR*T_TPP*v_i_MR/(10^3);
-            P_parasite_MR  = obj.Cd_MR*0.125*obj.rho*obj.A_D_MR*obj.V_inf.^3.*( 1 + obj.K1_MR*mu.^2 )/(10^3);
-            P_fusolage_MR  = obj.f*0.5*obj.rho*obj.V_inf.^3/(10^3);
-            P_req_MR       = P_induced_MR + P_parasite_MR + P_fusolage_MR;
+            s.Pc_induced_MR   = obj.k_i_MR*T_TPP*lam_i_MR;
+            s.Pc_parasite_MR  = obj.MR.sigma*obj.MR.Cd_mean*( 1 + obj.k_mu_MR*mu.^2 )/8;
+            s.Pc_fusolage_MR  = mu*( D_fs/T_TPP )*Tc_MR;
+            s.Pc_req_MR       = s.Pc_induced_MR + s.Pc_parasite_MR + s.Pc_fusolage_MR;
 
-            Q_MR           = P_req_MR*obj.omegaR_TR;
+
+            Q_MR           = s.P_req_MR/obj.MR.omega;
             T_TR           = Q_MR/obj.b;
-            CT_TR          = T_TR/( obj.rho*obj.A_D_TR*( obj.omegaR_TR )^2 );
-            v_i_TR         = CT_TR./( 2*mu );
+            Tc_TR          = T_TR/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
+            lam_i_TR       = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
+                            4*(T_TR.*0.5/obj.rho/(pi*obj.TR.R^2))^4)));
             % required power (Tail rotor) [W]
-            % P_indotta_TR   = W^2./( 2*rho*A_D*V_inf );
-            P_induced_TR   = obj.K_TR*T_TR.*v_i_TR/(10^3);
-            P_parasite_TR  = obj.Cd_TR*0.125*obj.rho*obj.A_D_TR*obj.V_inf.^3.*( 1 + obj.K1_TR*mu.^2 )/(10^3);
-            P_req_TR       = P_induced_TR + P_parasite_TR;
+            s.Pc_induced_TR   = obj.k_i_TR*T_TR*lam_i_TR;
+            s.Pc_parasite_TR  = obj.TR.sigma*obj.TR.Cd_mean*( 1 + obj.k_mu_TR*mu.^2 )/8;
+            s.Pc_req_TR       = s.P_induced_TR + s.P_parasite_TR;
 
-            % total required power [W]
-            P_req = (P_req_MR + P_req_TR + obj.P_req_AUX)*obj.eff_trassm;
+            % total required power [W]       
+            s.Pi_MR        = s.Pc_induced_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            s.P0_MR        = s.Pc_parasite_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            s.P_fus_MR     = s.Pc_fusolage_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            s.P_req_MR     = s.Pc_req_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+
+            s.Pi_TR        = s.Pc_induced_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+            s.P0_TR        = s.Pc_parasite_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+            s.P_req_TR     = s.Pc_req_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+
+            s.P_req_hori   = (s.P_req_MR + s.P_req_TR + obj.P_req_AUX)*obj.eta_t;
+
+            switch valIN
+                case 'P' % available power
+                    Vc         = (PoVc - s.P_req_hori)/TPP;
+                    s.Pc_climb = Vc*TPP;
+                case 'Vc'
+                    Vc         = PoVc;
+                    s.Pc_climb = Vc*TPP;
+            end
+            
+            obj.n_PA = obj.n_PA+1;
+            obj.PA{obj.n_PA,1} = s;
 
         end
 
