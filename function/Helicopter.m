@@ -5,7 +5,6 @@ classdef Helicopter<Rotor
         % ---------------------------------------------------------------------
         % Flight Conditions
         % ---------------------------------------------------------------------
-        h        {mustBeFinite}                     % [m]
         % cancellare se non la usiamo
         V_max    {mustBePositive, mustBeFinite}     % [m/s]
         % ---------------------------------------------------------------------
@@ -28,7 +27,7 @@ classdef Helicopter<Rotor
         % Propulsion
         % ---------------------------------------------------------------------
         engine_number {mustBePositive, mustBeFinite}  % [\]
-        SFC           {mustBePositive, mustBeFinite}  % [Kg/kW*h]?
+        SFC           {mustBePositive, mustBeFinite}  % [lb/( hp*h )]
         engine_power  {mustBePositive, mustBeFinite}  % [W]
         % ---------------------------------------------------------------------
         % Power
@@ -54,6 +53,7 @@ classdef Helicopter<Rotor
         % these variables.
 
         % Ambient conditions
+        h         {mustBeFinite}                % Altitude 
         rho       {mustBePositive, mustBeFinite}% Air density
         press     {mustBePositive, mustBeFinite}% pressione dell'aria
         sound_vel {mustBePositive, mustBeFinite}% velocità del suono dell'aria
@@ -95,6 +95,7 @@ classdef Helicopter<Rotor
             %--------------------------------------------------------------
             % Main Rotor
             obj.MR.h     = h;                   % set altitude
+
             obj.MR       = obj.MR.ambient();    % compute ambient properties
             options      = BEMTset_rotor();
             options.k_i  = obj.k_i_MR;
@@ -129,16 +130,22 @@ classdef Helicopter<Rotor
         
         
         % required power for level flight
-        function obj = Req_power_level_flight(obj,h,V_inf_Vec,Chi,T,f,valIN,PoVc)
+        function obj = Req_power_level_flight(obj,h,V_inf_Vec,T,f,valIN,PoVc)
             %------------------------------------------------------------------
             % This function compute the required power curve in the
             % Power-Velocity plane and stores them inside arrays. The
             % arrays have dimensions 1 x n_vel, the dimension of the
             % velocity vector, that can be changed within the class
             % Input:
-            % - h
-            % - V_inf_Vec
-            % - Chi
+            % - h             : 
+            % - V_inf_Vec     :
+            % - T             :
+            % - f             : 
+            % - valIN         : a flag to chose the type of problem to be solved:
+            %                   "P" -> given available power -> climb velocity;
+            %                   "Vc"-> given climb velocity -> required power.
+            % - PoVc          : available power OR Climb velocity depending
+            %                   on the flag "ValIn"
             % Output:
             % - P_induced_MR  : induced power by the main rotor
             % - P_parasite_MR : parasite power of the main rotor
@@ -146,20 +153,22 @@ classdef Helicopter<Rotor
             % aerodynamics exposed surfaces
             % - P_induced_TR  : induced power by the tail rotor
             % - P_parasite_TR : parasite power of the tail rotor
+            % - P_req_hori    : required power fo forward flight
+            % - Pc_climb      : required power for a given climb velocity
+            % - Vc            : climb velocity for a given available pwer 
             %-------------------------------------------------------------------
             arguments
                 obj
                 h         {mustBeNonnegative,mustBeFinite}
                 V_inf_Vec (:,1){mustBeNonnegative,mustBeFinite}
-                Chi       {mustBeFinite}
                 T         {mustBePositive,mustBeFinite}
                 f         {mustBePositive, mustBeFinite}
                 valIN     {mustBeMember(valIN,{'P','Chi'})}
                 PoVc     (1,1) {mustBeFinite,mustBeMember}
             end
-            
+            obj = obj.ambient(h);
             % required thrust
-            T_TPP     = T;
+            T_TPP    = T;
             Tc_MR    = T_TPP/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
             mu       = V_inf_Vec/( obj.MR.omega*obj.MR.R );
             lam_i_MR = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
@@ -200,13 +209,92 @@ classdef Helicopter<Rotor
                 case 'P' % available power
                     Vc         = (PoVc - s.P_req_hori)/TPP;
                     s.Pc_climb = Vc*TPP;
-                case 'Vc'
+                case 'Vc'% climb velocity
                     Vc         = PoVc;
                     s.Pc_climb = Vc*TPP;
             end
             
+            s.P_req = s.P_req_hori + s.Pc_climb*obj.eta_t;
             obj.n_PA = obj.n_PA+1;
             obj.PA{obj.n_PA,1} = s;
+
+        end
+
+        % required power for level flight
+        function obj = Performance_Heli(obj,h,P_av,T,fuel_load)
+            %------------------------------------------------------------------
+            % This function computes the most relevant helicopter
+            % perfomances for a given available power.
+            % Input:
+            % - h      : flight altitude
+            % - P_av   : available power
+            % Output:
+            % - V_max  : maximum velocity (forward level flight)
+            % - V_BE   : best endurance velocity 
+            % - V_BR   : best range velocity
+            % - ROC_max: maximumn rate of climb
+            % The ouptut matrix has the following dimensions:
+            % [OUTPUT] = ih x ip x iw
+            %------------------------------------------------------------------
+            arguments
+                obj
+                h         {mustBeNonnegative,mustBeFinite}
+                P_av      {mustBeNonnegative,mustBeFinite}
+                T         {mustBePositive,mustBeFinite}
+                fuel_load {mustBeInRange(fuel_load,0,1)} = 1;  
+            end
+            SFC = convforce(obj.SFC,'lbf','N')/( 745.6*3600 );
+            
+            
+%             h_init = 500;
+%             Delta_h = 50;
+%             for ip = 1:length(P_av)
+%                 for iw = 1:length(T)
+%                     obj2 = Req_power_level_flight(obj,h_init,V_inf_Vec,T(iw),f,'P',P_av(ip));
+%                     s    = obj2.PA{obj2.n_PA,1};
+%                     while s.Vc > con,vvel(100,'ft/min','m/s') 
+%                         h = h + Delta_h;
+%                         V_inf_Vec = linspace(0,(obj.MR.omega*obj.MR.R) + Delta_V,N);
+%                         obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
+%                         s = obj2.PA{obj2.n_PA,1};
+%                     end
+%                     % Ceiling
+%                     s.Ceiling = h;
+%                 end
+%             end
+            
+            
+            N = 70;
+            V_inf_Vec = linspace(0,obj.MR.omega*obj.MR.R,N);
+            for ih = 1:length(h)
+                for ip = 1:length(P_av)
+                    for iw = 1:length(T)
+                        obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
+                        s    = obj2.PA{obj2.n_PA,1};
+                        while max(s.P_req) < P_av(ip)
+                            Delta_V = 0.05*(obj.MR.omega*obj.MR.R);
+                            V_inf_Vec = linspace(0,(obj.MR.omega*obj.MR.R) + Delta_V,N);
+                            obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
+                            s = obj2.PA{obj2.n_PA,1};
+                        end
+                        % Perfomances
+                        s.P_min(ih,ip,iw)   = min(s.P_req);
+                        s.P_BR(ih,ip,iw)    = min(s.P_req./V_inf_Vec);
+                        s.V_max(ih,ip,iw)   = max(V_inf_Vec(abs( (s.P_req - P_av(ip))/max(s.P_req) ) <1e-2));
+                        s.V_BE(ih,ip,iw)    = V_inf_Vec(s.P_req == s.P_min(ih,ip,iw));
+                        s.Endu(ih,ip,iw)    = obj.W_fuel*fuel_load/( SFC*s.P_min(ih,ip,iw) );
+                        s.V_BR(ih,ip,iw)    = V_inf_Vec(s.P_req == s.P_BR(ih,ip,iw));
+                        s.Range(ih,ip,iw)   = s.V_BR(ih,ip,iw)*obj.W_fuel*fuel_load/( SFC*s.P_BR(ih,ip,iw) );
+                        s.ROC_max(ih,ip,iw) = max(s.Vc);
+                        s.gamma(ih,ip,iw)   = max(atan(Vc./V_inf_Vec));    
+                    end
+                end
+            end
+
+
+            
+          
+
 
         end
 
