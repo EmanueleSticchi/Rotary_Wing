@@ -180,59 +180,68 @@ classdef Helicopter
             T_TPP    = T;
             Tc_MR    = T_TPP/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
             mu       = V_inf_Vec/( obj.MR.omega*obj.MR.R );
-            lam_i_MR = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
-                            4*(T_TPP.*0.5/obj.rho/(pi*obj.MR.R^2))^4)));
+            ni_i_MR  = sqrt( -0.5*(V_inf_Vec.^2 - sqrt(V_inf_Vec.^4 + ...
+                            4*(T_TPP*0.5/obj.rho/(pi*obj.MR.R^2))^2)));
+            lam_i_MR = ni_i_MR/(obj.MR.omega*obj.MR.R);
             D_fs     = 0.5*obj.rho*V_inf_Vec.^2*f;
 
             
             % required power (Main rotor) [W]
-            s.Pc_induced_MR   = obj.k_i_MR*T_TPP*lam_i_MR;
+            s.Pc_induced_MR   = obj.k_i_MR*Tc_MR*lam_i_MR;
             s.Pc_parasite_MR  = obj.MR.sigma*obj.MR.Cd_mean*( 1 + obj.k_mu_MR*mu.^2 )/8;
             s.Pc_fusolage_MR  = mu.*( D_fs/T_TPP )*Tc_MR;
             s.Pc_req_MR       = s.Pc_induced_MR + s.Pc_parasite_MR + s.Pc_fusolage_MR;
 
-            s.P_req_MR     = s.Pc_req_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
-            s.Pi_MR        = s.Pc_induced_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            s.Pi_MR        = s.Pc_induced_MR  * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
             s.P0_MR        = s.Pc_parasite_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
             s.P_fus_MR     = s.Pc_fusolage_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
-
-            Q_MR           = s.P_req_MR/obj.MR.omega;
-            T_TR           = Q_MR/obj.lr;
-            Tc_TR          = T_TR/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
-            lam_i_TR       = sqrt( -0.5*V_inf_Vec.^2 + ...
+            s.P_req_MR     = s.Pc_req_MR      * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            
+            Q_MR       = s.P_req_MR/obj.MR.omega;
+            T_TR       = Q_MR/obj.lr;
+            Tc_TR      = T_TR/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
+            ni_i_TR    = sqrt( -0.5*V_inf_Vec.^2 + ...
                              0.5*sqrt( V_inf_Vec.^4 + ( T_TR/(obj.rho*pi*obj.TR.R^2) ).^2 ) );
-%             lam_i_TR       = sqrt( -0.5*(V_inf_Vec.^2 - sqrt(V_inf_Vec.^4 + ...
-%                             4*(T_TR.*0.5/obj.rho/(pi*obj.TR.R^2)).^2)));
+            lam_i_TR   = ni_i_TR/(obj.TR.omega*obj.TR.R);             
+            
             % required power (Tail rotor) [W]
-            s.Pc_induced_TR   = obj.k_i_TR*T_TR.*lam_i_TR;
+            s.Pc_induced_TR   = obj.k_i_TR*Tc_TR.*lam_i_TR;
             s.Pc_parasite_TR  = obj.TR.sigma*obj.TR.Cd_mean*( 1 + obj.k_mu_TR*mu.^2 )/8;
             s.Pc_req_TR       = s.Pc_induced_TR + s.Pc_parasite_TR;
 
             % total required power [W]       
             
-            s.Pi_TR        = s.Pc_induced_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
-            s.P0_TR        = s.Pc_parasite_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
-            s.P_req_TR     = s.Pc_req_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+            s.Pi_TR      = s.Pc_induced_TR  * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+            s.P0_TR      = s.Pc_parasite_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
+            s.P_req_TR   = s.Pc_req_TR      * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
 
-            s.P_req_hori   = (s.P_req_MR + s.P_req_TR + obj.P_req_AUX)*obj.eta_t;
+            s.P_req_hori = (s.P_req_MR + s.P_req_TR + obj.P_req_AUX)*obj.eta_t;
 
             switch valIN
                 case 'P' % available power
-                    s.Vc         = (PoVc - s.P_req_hori)/T_TPP;
-                    s.Pc_climb = s.Vc*T_TPP;
+                    s.Vc      = (PoVc - s.P_req_hori)/T_TPP;
+                    s.P_av    = PoVc;
+                    s.P_climb = s.Vc*T_TPP;
+                    s.P_req   = s.P_req_hori;
                 case 'Vc'% climb velocity
-                    s.Vc         = PoVc;
-                    s.Pc_climb = s.Vc*T_TPP;
+                    s.Vc      = PoVc;
+                    s.P_av    = PoVc*T_TPP + s.P_req_hori;
+                    s.P_climb = s.Vc*T_TPP;
+                    s.P_req   = s.P_req_hori + max(0,s.P_climb*obj.eta_t);
             end
-            s.lam_i = lam_i_TR;
-            s.P_req = s.P_req_hori + s.Pc_climb*obj.eta_t;
+            
+            s.Pc_climb   = s.P_climb/obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
+            s.lam_i_MR   = lam_i_MR;
+            s.lam_i_TR   = lam_i_TR;
+            s.V_inf_vec  = V_inf_Vec;
+            
             obj.n_PA = obj.n_PA+1;
             obj.PA{obj.n_PA,1} = s;
 
         end
 
         % required power for level flight
-        function obj = Performance_Heli(obj,h,P_av,T,fuel_load)
+        function obj = Performance_Heli(obj,h,P_av,T,f,fuel_load)
             %------------------------------------------------------------------
             % This function computes the most relevant helicopter
             % perfomances for a given available power. 
@@ -256,6 +265,7 @@ classdef Helicopter
                 h         {mustBeNonnegative,mustBeFinite}
                 P_av      {mustBeNonnegative,mustBeFinite}
                 T         {mustBePositive,mustBeFinite}
+                f         {mustBePositive,mustBeFinite}
                 fuel_load {mustBeInRange(fuel_load,0,1)} = 1;  
             end
             SFC = convforce(obj.SFC,'lbf','N')/( 745.6*3600 );
@@ -287,31 +297,43 @@ classdef Helicopter
                         obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
                         s    = obj2.PA{obj2.n_PA,1};
                         
-                        while max(s.P_req) < P_av(ip)
+                        while (max(s.P_req) < P_av(ip)) 
                             Delta_V = 0.05*(obj.MR.omega*obj.MR.R);
                             V_inf_Vec = linspace(0,(obj.MR.omega*obj.MR.R) + Delta_V,N);
                             obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
                             s = obj2.PA{obj2.n_PA,1};
                         end
                         % Perfomances
-                        s.P_min(ih,ip,iw)   = min(s.P_req);
-                        s.P_BR(ih,ip,iw)    = min(s.P_req./V_inf_Vec);
-                        s.V_max(ih,ip,iw)   = max(V_inf_Vec(abs( (s.P_req - P_av(ip))/max(s.P_req) ) <1e-2));
-                        s.V_BE(ih,ip,iw)    = V_inf_Vec(s.P_req == s.P_min(ih,ip,iw));
-                        s.Endu(ih,ip,iw)    = obj.W_fuel*fuel_load/( SFC*s.P_min(ih,ip,iw) );
-                        s.V_BR(ih,ip,iw)    = V_inf_Vec(s.P_req == s.P_BR(ih,ip,iw));
-                        s.Range(ih,ip,iw)   = s.V_BR(ih,ip,iw)*obj.W_fuel*fuel_load/( SFC*s.P_BR(ih,ip,iw) );
-                        s.ROC_max(ih,ip,iw) = max(s.Vc);
-                        s.gamma(ih,ip,iw)   = max(atan(Vc./V_inf_Vec));    
+                        sp.P_min(ih,ip,iw)   = min(s.P_req);
+                        sp.P_BR(ih,ip,iw)    = s.P_req(s.P_req'./V_inf_Vec == min(s.P_req'./V_inf_Vec));
+                        if sum(abs( (s.P_req - P_av(ip))/max(s.P_req) ) <1e-2) == 0
+                            % P_av sempre minore di P_req
+                            sp.V_max(ih,ip,iw)     = 0;
+                        else
+                            sp.V_max(ih,ip,iw)     = max(V_inf_Vec(abs( (s.P_req - P_av(ip))/max(s.P_req) ) <1e-4));       
+                        end
+                        if sum(s.P_req_hori > P_av(ip)) ==0
+                            sp.ROC_max(ih,ip,iw)   = 0;
+                            sp.gamma_max(ih,ip,iw) = 0;
+                            sp.ROD_min(ih,ip,iw)   = max(s.Vc);
+                            sp.gamma_min(ih,ip,iw) = max(atan(s.Vc'./V_inf_Vec));
+                        else
+                            sp.ROC_max(ih,ip,iw)   = max(s.Vc);
+                            sp.gamma_max(ih,ip,iw) = max(atan(s.Vc'./V_inf_Vec));
+                            sp.ROD_min(ih,ip,iw)   = 0;
+                            sp.gamma_min(ih,ip,iw) = 0;
+                        end
+                        sp.Vd_autorot_min(ih,ip,iw)  = min(s.P_req_hori/T(iw));
+                        sp.V_BE(ih,ip,iw)            = V_inf_Vec(s.P_req == sp.P_min(ih,ip,iw));
+                        sp.Endu(ih,ip,iw)            = obj.W_fuel*fuel_load/( SFC*sp.P_min(ih,ip,iw) );
+                        sp.V_BR(ih,ip,iw)            = V_inf_Vec(s.P_req == sp.P_BR(ih,ip,iw));
+                        sp.Range(ih,ip,iw)           = sp.V_BR(ih,ip,iw)*obj.W_fuel*fuel_load/( SFC*sp.P_BR(ih,ip,iw) );  
                     end
                 end
             end
-
-
+            obj.n_PerfA = obj.n_PerfA + 1;
+            obj.PerfA{obj.n_PerfA,1} = sp;
             
-          
-
-
         end
 
     end

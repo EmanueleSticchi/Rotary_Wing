@@ -81,13 +81,12 @@ figure(); hold on;
 plot(V_inf_Vec,s.P_req_TR,'DisplayName','P_{TR}')
 plot(V_inf_Vec,s.P_req_MR,'DisplayName','P_{MR}')
 plot(V_inf_Vec,heli_1.P_req_AUX*ones(length(V_inf_Vec),1),'DisplayName','P_{AUX}')
-% plot(V_inf_Vec,s.P_climb,'DisplayName','P_{climb}')
+plot(V_inf_Vec,s.P_climb,'DisplayName','P_{climb}')
 plot(V_inf_Vec,s.P_req_hori,'DisplayName','P_{req_{hor}}')
 plot(V_inf_Vec,s.P_req,'DisplayName','P_{req}')
 plot(V_inf_Vec,s.P_av*ones(length(V_inf_Vec),1),'DisplayName','P_{av}')
 plot(sp.V_BE,sp.P_min,'*','DisplayName','P_{min}','MarkerSize',10)
 plot(sp.V_BR,sp.P_BR,'*','DisplayName','P_{BR}','MarkerSize',10)
-plot(sp.V_max,s.P_av,'*','DisplayName','V_{max}','MarkerSize',10)
 legend
 
 figure(); hold on;
