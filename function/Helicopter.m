@@ -1,7 +1,11 @@
-classdef Helicopter<Rotor
-    % TODO:
-    % -> INSERT LIMITS FOR h, fuel_load (0,1) and others    when possible
+classdef Helicopter
+    % The following class enables the user to computes the main perfomances
+    % of an Helicopter given its main geometrical properties. Some
+    % assumptions were made:
+    % -> linear geometrical twist along the span
+    % -> costant chord along the span
     properties
+
         % ---------------------------------------------------------------------
         % Flight Conditions
         % ---------------------------------------------------------------------
@@ -11,9 +15,10 @@ classdef Helicopter<Rotor
         % Mass
         % ---------------------------------------------------------------------
         % poi vediamo
-        fuel_load {mustBePositive, mustBeFinite, mustBeInRange(fuel_load,0,1,'exclude-lower')}
+        fuel_load {mustBePositive, mustBeFinite, mustBeInRange(fuel_load,0,1,'exclude-lower')} % [\]
         W_fuel    {mustBePositive, mustBeFinite}    % [N]
         W_mtow    {mustBePositive, mustBeFinite}    % [N]
+        W_empty   {mustBePositive, mustBeFinite}    % [N]
         % ---------------------------------------------------------------------
         % Geometry
         % ---------------------------------------------------------------------
@@ -68,7 +73,11 @@ classdef Helicopter<Rotor
         % Power Analysis
         PA  
         % Number of power analisys
-        n_PA
+        n_PA = 0;
+        % Performance Analysis
+        PerfA
+        % Number of power analisys
+        n_PerfA = 0;
     end
     methods
         %% Auxiliary methods
@@ -164,7 +173,7 @@ classdef Helicopter<Rotor
                 T         {mustBePositive,mustBeFinite}
                 f         {mustBePositive, mustBeFinite}
                 valIN     {mustBeMember(valIN,{'P','Chi'})}
-                PoVc     (1,1) {mustBeFinite,mustBeMember}
+                PoVc      (1,1){mustBeFinite}
             end
             obj = obj.ambient(h);
             % required thrust
@@ -179,26 +188,28 @@ classdef Helicopter<Rotor
             % required power (Main rotor) [W]
             s.Pc_induced_MR   = obj.k_i_MR*T_TPP*lam_i_MR;
             s.Pc_parasite_MR  = obj.MR.sigma*obj.MR.Cd_mean*( 1 + obj.k_mu_MR*mu.^2 )/8;
-            s.Pc_fusolage_MR  = mu*( D_fs/T_TPP )*Tc_MR;
+            s.Pc_fusolage_MR  = mu.*( D_fs/T_TPP )*Tc_MR;
             s.Pc_req_MR       = s.Pc_induced_MR + s.Pc_parasite_MR + s.Pc_fusolage_MR;
 
-
-            Q_MR           = s.P_req_MR/obj.MR.omega;
-            T_TR           = Q_MR/obj.b;
-            Tc_TR          = T_TR/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
-            lam_i_TR       = sqrt( -0.5*(V_inf_Vec.^2 + sqrt(V_inf_Vec.^4 + ...
-                            4*(T_TR.*0.5/obj.rho/(pi*obj.TR.R^2))^4)));
-            % required power (Tail rotor) [W]
-            s.Pc_induced_TR   = obj.k_i_TR*T_TR*lam_i_TR;
-            s.Pc_parasite_TR  = obj.TR.sigma*obj.TR.Cd_mean*( 1 + obj.k_mu_TR*mu.^2 )/8;
-            s.Pc_req_TR       = s.P_induced_TR + s.P_parasite_TR;
-
-            % total required power [W]       
+            s.P_req_MR     = s.Pc_req_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
             s.Pi_MR        = s.Pc_induced_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
             s.P0_MR        = s.Pc_parasite_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
             s.P_fus_MR     = s.Pc_fusolage_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
-            s.P_req_MR     = s.Pc_req_MR * obj.rho*pi*obj.MR.R^5*obj.MR.omega^3;
 
+            Q_MR           = s.P_req_MR/obj.MR.omega;
+            T_TR           = Q_MR/obj.lr;
+            Tc_TR          = T_TR/( obj.rho*pi*obj.MR.R^4*obj.MR.omega^2 );
+            lam_i_TR       = sqrt( -0.5*V_inf_Vec.^2 + ...
+                             0.5*sqrt( V_inf_Vec.^4 + ( T_TR/(obj.rho*pi*obj.TR.R^2) ).^2 ) );
+%             lam_i_TR       = sqrt( -0.5*(V_inf_Vec.^2 - sqrt(V_inf_Vec.^4 + ...
+%                             4*(T_TR.*0.5/obj.rho/(pi*obj.TR.R^2)).^2)));
+            % required power (Tail rotor) [W]
+            s.Pc_induced_TR   = obj.k_i_TR*T_TR.*lam_i_TR;
+            s.Pc_parasite_TR  = obj.TR.sigma*obj.TR.Cd_mean*( 1 + obj.k_mu_TR*mu.^2 )/8;
+            s.Pc_req_TR       = s.Pc_induced_TR + s.Pc_parasite_TR;
+
+            % total required power [W]       
+            
             s.Pi_TR        = s.Pc_induced_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
             s.P0_TR        = s.Pc_parasite_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
             s.P_req_TR     = s.Pc_req_TR * obj.rho*pi*obj.TR.R^5*obj.TR.omega^3;
@@ -207,13 +218,13 @@ classdef Helicopter<Rotor
 
             switch valIN
                 case 'P' % available power
-                    Vc         = (PoVc - s.P_req_hori)/TPP;
-                    s.Pc_climb = Vc*TPP;
+                    s.Vc         = (PoVc - s.P_req_hori)/T_TPP;
+                    s.Pc_climb = s.Vc*T_TPP;
                 case 'Vc'% climb velocity
-                    Vc         = PoVc;
-                    s.Pc_climb = Vc*TPP;
+                    s.Vc         = PoVc;
+                    s.Pc_climb = s.Vc*T_TPP;
             end
-            
+            s.lam_i = lam_i_TR;
             s.P_req = s.P_req_hori + s.Pc_climb*obj.eta_t;
             obj.n_PA = obj.n_PA+1;
             obj.PA{obj.n_PA,1} = s;
@@ -224,15 +235,19 @@ classdef Helicopter<Rotor
         function obj = Performance_Heli(obj,h,P_av,T,fuel_load)
             %------------------------------------------------------------------
             % This function computes the most relevant helicopter
-            % perfomances for a given available power.
+            % perfomances for a given available power. 
             % Input:
             % - h      : flight altitude
-            % - P_av   : available power
+            % - P_av   : available power independent from the 
+            %            altitude variation  
             % Output:
             % - V_max  : maximum velocity (forward level flight)
             % - V_BE   : best endurance velocity 
             % - V_BR   : best range velocity
             % - ROC_max: maximumn rate of climb
+            % - Endu   : endurance [s]
+            % - Range  : range [m]
+            % - gamma  : climb angle [rad]
             % The ouptut matrix has the following dimensions:
             % [OUTPUT] = ih x ip x iw
             %------------------------------------------------------------------
@@ -268,9 +283,10 @@ classdef Helicopter<Rotor
             V_inf_Vec = linspace(0,obj.MR.omega*obj.MR.R,N);
             for ih = 1:length(h)
                 for ip = 1:length(P_av)
-                    for iw = 1:length(T)
+                    for iw = 1:length(T)                  
                         obj2 = Req_power_level_flight(obj,h(ih),V_inf_Vec,T(iw),f,'P',P_av(ip));
                         s    = obj2.PA{obj2.n_PA,1};
+                        
                         while max(s.P_req) < P_av(ip)
                             Delta_V = 0.05*(obj.MR.omega*obj.MR.R);
                             V_inf_Vec = linspace(0,(obj.MR.omega*obj.MR.R) + Delta_V,N);
