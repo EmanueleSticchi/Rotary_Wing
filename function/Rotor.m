@@ -7,8 +7,8 @@ classdef Rotor
         R     {mustBePositive, mustBeFinite}         % Rotor Radius, [m]
         theta_t (1,1){mustBeReal, mustBeFinite}      % pitch twist angle, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite} % Rotor chord, [m]
-        c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m]
-        sigma {mustBeNonnegative, mustBeFinite}  % Mean solidity, [\]
+        c_mean{mustBeNonnegative, mustBeFinite}      % Rotor chord, [m] (?)
+        sigma {mustBeNonnegative, mustBeFinite}      % Mean solidity, [\]
         I     {mustBePositive, mustBeFinite}         % Moment of inertia, [kgm^2]
         gamma {mustBePositive, mustBeFinite}         % Lock number
         % ---------------------------------------------------------------------
@@ -25,10 +25,11 @@ classdef Rotor
         % ---------------------------------------------------------------------
         % Aerodynamics
         % ---------------------------------------------------------------------
-        Cl = @(alpha) 2*pi*alpha;
-        Cd = @(alpha) 0.01*alpha./alpha;
         Cl_alpha = 2*pi;
         Cd_mean  = 0.01;
+        Cl = @(alpha) 2*pi*alpha;
+        Cd = @(alpha) 0.01*alpha./alpha;
+        
         % ---------------------------------------------------------------------
         % Analisys & Design
         % ---------------------------------------------------------------------
