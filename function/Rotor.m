@@ -45,7 +45,7 @@ classdef Rotor
         n_analisi_articulated = 0
         n_analisi_autorot = 0
         % ambient conditons
-        rho       {mustBePositive, mustBeFinite}
+        rho       {mustBePositive, mustBeFinite} = 1.23
         press     {mustBePositive, mustBeFinite}
         sound_vel {mustBePositive, mustBeFinite}
         temp      {mustBePositive, mustBeFinite}
@@ -389,7 +389,8 @@ classdef Rotor
                         Mach_e(i,j,idxV)  = ( (s.lam_Vec(idxV)  +...
                                           b_dot(j)*obj.r_bar(i)/obj.omega+...
                                           b(j)*s.mu(idxV)*cos(Psi(j)))^2 + (...
-                                          obj.r_bar(i) + s.mu(idxV)*sin(Psi(j)))^2 )/obj.sound_vel;                                         
+                                          obj.r_bar(i) + s.mu(idxV)*sin(Psi(j)))^2 )...
+                                          *obj.omega*obj.R/obj.sound_vel;                                         
                     end
                 end
             end
@@ -397,7 +398,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Sentiero di Stallo
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [s,ir,c] = sentiero_stallo(obj,alpha_max_2D,valIN,ToTheta,chi,f,options)
+        function [s,ir,c] = sentiero_stallo(obj,alpha_max_2D,Vvec,valIN,ToTheta,chi,f,options)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare il sentiero di stallo
             % per assegnata spinta o callettamento di radice (comando
@@ -409,6 +410,10 @@ classdef Rotor
             %
             % Input:
             % - alpha_max_2D    : Angolo di stallo 2D
+            % - Vvec            : Vettore di incrementi rispetto alla V_inf
+            %                     in corrispondenza della quale si ha per
+            %                     la prima volta un AoA = alpha_max_2D. (
+            %                     ad esempio [1:0.01:1.1])
             % - valIN           : Flag per scegliere il tipo di risoluzione
             %                     delproblema: "T" -> Spinta fissata;
             %                     "Theta" -> collettivo fissato.
@@ -430,6 +435,7 @@ classdef Rotor
             arguments
                 obj
                 alpha_max_2D (1,1) {mustBePositive, mustBeFinite}
+                Vvec      {mustBePositive,mustBeFinite}
                 valIN     {mustBeMember(valIN,{'T','Theta',})}
                 ToTheta   (1,1) {mustBeFinite}
                 chi       {mustBeFinite}
@@ -468,7 +474,7 @@ classdef Rotor
             figure 
             % ricavo alpha_e per un vettore i velocità incrementali
             % rispetto a quella critica
-            V_inf = s.V_inf*[1:0.02:1.2]';
+            V_inf = s.V_inf*Vvec;
             obj2 = BEMT_articulated(obj,valIN,ToTheta,V_inf,chi,f,options);
             alpha_e = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.alpha_e;
             mu      = obj2.Analisi_articulated{obj2.n_analisi_articulated,1}.mu;
@@ -478,14 +484,22 @@ classdef Rotor
             polarplot(s.options.Psi(c),obj.r_bar(ir),'*k','MarkerSize',10,...
                 'DisplayName',['\mu = ',num2str(mu(1))]);
             hold on;
-            formatspec={'-',':','--','.-','-s','-d','-^'};
-            for k = 2:length(V_inf)-3
+%             formatspec={'-',':','--','.-','-s','-d','-^'};
+            formatspec={'*','^','s','d','>','<','o'}; ik=0;
+            for k = 2:length(V_inf)
                 [ir,ic] = find(( (alpha_e(:,:,k) - alpha_max_2D) < convang(0.1,'deg','rad') ) &...
                     ( (alpha_e(:,:,k) - alpha_max_2D) > 0 ) );
-                p = polyfit(s.options.Psi(ic),obj.r_bar(ir),max(min(3,length(ir)-1),1));
-                r_new = polyval(p,s.options.Psi(ic));
-                polarplot(s.options.Psi(ic),r_new,[formatspec{k-1},'k'],...
-                    'DisplayName',['\mu = ',num2str(mu(k))]);  
+%                 p = polyfit(s.options.Psi(ic),obj.r_bar(ir),max(min(3,length(ir)-1),1));
+%                 r_new = polyval(p,s.options.Psi(ic));
+%                 polarplot(s.options.Psi(ic),r_new,[formatspec{k-1},'k'],...
+%                     'DisplayName',['\mu = ',num2str(mu(k))]);  
+                % senza interpolare
+                ik= ik +1;
+                if ik > 7
+                    ik = 1;
+                end
+                polarplot(s.options.Psi(ic),obj.r_bar(ir),[formatspec{ik},'k'],...
+                    'DisplayName',['\mu = ',sprintf('%0.2f',mu(k))]);
             end
             
             ax = gca;
@@ -624,8 +638,9 @@ classdef Rotor
                 axis off
                 axis image
                 view([90 90])
-                title(['\mu = ',num2str(s.mu(idxV)),'   \alpha_{e_{max}} = ',...
-                    num2str(max(alpha_e,[],'all')),' deg'])
+                s_mu = sprintf('%0.2f',s.mu(idxV)/cos(s.alpha_TPP_Vec(idxV)));
+                s_a  = sprintf('%0.2f',max(alpha_e,[],'all'));
+                title(['\mu = ',s_mu,'   \alpha_{e_{max}} = ',s_a,' deg'])
             end
             
 
@@ -633,7 +648,84 @@ classdef Rotor
 
 
         end
-        
+        %------------------------------------------------------------------
+        function s=MachMap(obj,valIN,val)
+            % Plot alpha_e contour
+            % INPUT:
+            % - valIN:    flag per l'input val:
+            %                   - 'Plot'  -> in tal caso val dovrà essere
+            %                   un cell array 2x1 in cui vi è 
+            %                   una struct (output di BEMT_articulated) ed
+            %                   un vettore di valori di mu per i quali si
+            %                   desidera effettuare i plot
+            %                    
+            %                   - 'Solve' -> in tal caso val dovrà essere
+            %                   una cell array  6x1 con gli input da dare
+            %                   alla funzione BEMT_articulated 
+            %                 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            switch valIN
+                case 'Plot'
+                    s=val{1,1};
+                    for i =1:length(val{2,1})
+                        [~,idxMu(i)]=min(abs(s.mu - val{2,1}(i)));
+                    end
+                case 'Solve'
+                    valIN     = val{1,1};
+                    ToTheta   = val{2};
+                    V_inf_Vec = val{3};
+                    chi       = val{4};
+                    f         = val{5};
+                    options   = val{6};
+                    obj2=obj.BEMT_articulated(valIN,ToTheta,V_inf_Vec,...
+                        chi,f,options);
+                    s=obj2.Analisi_articulated{obj2.n_analisi_articulated,1};
+                    idxMu=1:length(s.mu);
+                otherwise
+                    error('Attenzione valIN può essere: "Plot" o "Solve"')
+            end
+            
+
+            for i = 1:length(idxMu)
+                figure
+                idxV=idxMu(i);
+                M_e=s.Mach_e(:,:,idxV);
+                % Create polar data
+                [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
+                % Convert to Cartesian
+                x = r.*cos(psi);
+                y = r.*sin(psi);
+                % define polar axes
+                h = polar(x,y);
+                hold on;
+                polar(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
+                polar(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
+                % contourf(x,y,alpha_e');
+                pc= pcolor(x,y,M_e');
+                contour(x,y,M_e','k','ShowText','on');
+                shading interp
+                % colormap 'hsv'
+                cbar=colorbar(gca);
+                cbar.Label.String = 'Mach_e';
+                cbar.Label.FontSize= 16;
+                % cbar.Limits = [-10 10];
+  
+                % Hide the POLAR function data and leave annotations
+                set(h,'Visible','off')
+                % Turn off axes and set square aspect ratio
+                axis off
+                axis image
+                view([90 90])
+                s_mu = sprintf('%0.2f',s.mu(idxV)/cos(s.alpha_TPP_Vec(idxV)));
+                s_a  = sprintf('%0.2f',max(M_e,[],'all'));
+                title(['\mu = ',s_mu,'   M_{e_{max}} = ',s_a])
+            end
+            
+
+
+
+
+        end
 
         
         function Model3D(obj,x,z)
