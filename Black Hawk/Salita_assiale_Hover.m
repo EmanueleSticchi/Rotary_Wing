@@ -5,7 +5,7 @@ global aero
 % geometry
 rotore   = Rotor();
 rotore   = rotore.r(linspace(0.1,1,20));      % dominio radiale [\]
-rotore.R = 14.63;                             % Raggio rotore   [m]
+rotore.R = convlength(24,'ft','m');           % Raggio rotore   [m]
 rotore.N = 4;                                 % numero di pale  [\]
 rotore.c = linspace(0.53,0.53,rotore.n_r);    % corde           [m]
 I_MR     = 3800;
@@ -16,7 +16,7 @@ rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 % aerodynamics
 load('polari HH_02\polari\Aero_HH02_Re1250.mat')
-rotore.Cl_alpha = aero.Cl_a_mode;
+rotore.Cl_alpha = aero.Cl_a_mode*180/pi;
 rotore.Cl       = @(alpha) CL_(alpha);
 rotore.Cd       = @(alpha) CD_(alpha);
 
@@ -25,7 +25,7 @@ rotore   = rotore.rot_vel('omega',convvel(726,'ft/s','m/s')/rotore.R);
 V_inf    = linspace(0,10);           % Climb speed [m/s]
 rotore.h = 0;                        % Assume density air = 1.23 Kg/m^3
 rotore   = rotore.ambient();         % compute ambient conditions
-Vtheta0  = convang([10,12,15]...
+Vtheta0  = convang([10:19]...
     ,'deg','rad');                   % root pitch (comando collettivo) in [1,19 deg]
 
 %% Analysis ---------------------------------------------------------------
