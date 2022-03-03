@@ -1,0 +1,42 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=4.521in,
+height=3.496in,
+at={(0.758in,0.551in)},
+scale only axis,
+xmin=10,
+xmax=19,
+xlabel style={font=\color{white!15!black}},
+xlabel={$\theta{}_\text{0}\text{ [}^\circ\text{]}$},
+ymin=0.5,
+ymax=0.85,
+ylabel style={font=\color{white!15!black}},
+ylabel={FM},
+axis background/.style={fill=white},
+xmajorgrids,
+ymajorgrids
+]
+\addplot [color=mycolor1, forget plot]
+  table[row sep=crcr]{%
+10	0.503978822943578\\
+11	0.610894039420298\\
+12	0.685517458397244\\
+13	0.734417844464562\\
+14	0.765580682889366\\
+15	0.783088133459265\\
+16	0.793029085607695\\
+17	0.800838257632134\\
+18	0.807906728575961\\
+19	0.813500877034379\\
+};
+\end{axis}
+\end{tikzpicture}%
