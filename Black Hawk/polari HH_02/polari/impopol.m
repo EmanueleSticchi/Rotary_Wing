@@ -1,6 +1,6 @@
 %% Importa polari profilo HH_02
 clc; clear; close all
-d = ls('H*');
+d = ls('HU*');
 Relist = [500;1250;10000;2500;5000];
 for i =1:length(Relist)
     nomefile       = d(i,:);
