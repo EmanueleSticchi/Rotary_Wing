@@ -1,7 +1,7 @@
 %% Analisi Rotore Principale HUGHES HELICOPTERS HH-02 AIRFOIL in SALITA ASSIALE
 clc; clear; close all
 global aero
-m2tflag = 1;
+m2tflag = 0;
 %% Data -------------------------------------------------------------------
 % geometry
 rotore   = Rotor();
@@ -23,7 +23,7 @@ rotore.Cd       = @(alpha) CD_(alpha);
 
 % working conditions
 rotore   = rotore.rot_vel('omega',convvel(726,'ft/s','m/s')/rotore.R);
-V_inf    = linspace(0,10);           % Climb speed [m/s]
+V_inf    = linspace(0,20);           % Climb speed [m/s]
 rotore.h = 0;                        % Assume density air = 1.23 Kg/m^3
 rotore   = rotore.ambient();         % compute ambient conditions
 Vtheta0  = convang([10:19]...
@@ -80,8 +80,14 @@ ax.TickDir = 'in';
 
 % Ricollocazione delle figure in unica figura
 for i =1 : 2
-   figure(i) 
-   legend('AutoUpdate','off')
+   f=figure(i); 
+   f.Position = [511,366,995,625];
+   lg = legend('AutoUpdate','off');
+    set(lg,...
+    'Position',[0.406784353661566 0.833685915547491 0.483870960982336 0.0714285694973458],...
+    'Orientation','horizontal',...
+    'NumColumns',5,...
+    'AutoUpdate','off');
 %    xline(0)
 %    yline(0)
    grid on
