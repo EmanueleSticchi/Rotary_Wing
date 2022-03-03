@@ -52,7 +52,7 @@ classdef Rotor
         % geometry
         D     {mustBePositive, mustBeFinite}         % Rotor diameter, [m]
         A_D   {mustBePositive, mustBeFinite}         % Rotor area, [m^2]
-
+        k                                            % frequenza ridotta [\](c/2R)
         % storage variables for analysis and design
         Analisi_salita
         Analisi_articulated;
@@ -97,6 +97,7 @@ classdef Rotor
             obj.A_D   = pi*obj.R*obj.R;
             obj.c_mean= mean(obj.c);
             obj.sigma = ( obj.c_mean*obj.N )/( pi*obj.R );
+            obj.k     = obj.c_mean/2/obj.R;
         end
 
         % Compute rotational velocity. This function let the user decide
