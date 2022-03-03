@@ -1,9 +1,8 @@
 %%  Mappa per gli angoli per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 1;       %flag per il salvatagio delle immagini 
-folderA = 'Immagini\Mappa_AoA\';
-folderM = 'Immagini\Mappa_Mach\';
+pngflag = 0;       %flag per il salvatagio delle immagini 
+folder = 'Immagini\Mappa_AoA\';
 %% Data -------------------------------------------------------------------
 rotore   = Rotor();
 % aerodynamics
@@ -37,16 +36,15 @@ rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 alphamap(rotore,'Solve',{'T',W,V_inf,Chi,f,BEMTset_rotor()});
 if pngflag == 1
-    counter = 0;
     for i = 1:length(V_inf)
-        counter = counter + 1;
         figure(i)
-        FileName = sprintf('AoA%d.eps', counter);
+        FileName = sprintf('AoA%d.png', counter);
         ax = gca;
-        exportgraphics(ax,[folderA,FileName])
+        exportgraphics(ax,[folder,FileName])
+        counter = counter + 1;
     end
-else
-    disp('Non stai generando nessun file .png!');
+    else
+        disp('Non stai generando nessun file .png!');
 end
 
 
@@ -56,16 +54,3 @@ end
 MachMap(rotore,'Solve',{'T',W,V_inf,Chi,f,BEMTset_rotor()});
 % il numero di mach supera il valore sonico per velocità minore della V_ne.
 % In teoria bisognerebbe tenere in conto dell'effetto della freccia
-if pngflag == 1
-    counter = 0;
-    for i = (length(V_inf)+1):(2*length(V_inf))
-        counter = counter + 1;
-        figure(i)
-        FileName = sprintf('Mach%d.eps', counter);
-        ax = gca;
-        exportgraphics(ax,[folderM,FileName])
-    end
-else
-    disp('Non stai generando nessun file .png!');
-end
-

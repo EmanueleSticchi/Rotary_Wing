@@ -640,7 +640,7 @@ classdef Rotor
                 view([90 90])
                 s_mu = sprintf('%0.2f',s.mu(idxV)/cos(s.alpha_TPP_Vec(idxV)));
                 s_a  = sprintf('%0.2f',max(alpha_e,[],'all'));
-                title(['\mu = ',s_mu,'   \alpha_{e_{max}} = ',s_a,' deg'])
+                title(['\mu = ',s_mu,'                      \alpha_{e_{max}} = ',s_a,' deg'])
             end
             
 
@@ -718,7 +718,7 @@ classdef Rotor
                 view([90 90])
                 s_mu = sprintf('%0.2f',s.mu(idxV)/cos(s.alpha_TPP_Vec(idxV)));
                 s_a  = sprintf('%0.2f',max(M_e,[],'all'));
-                title(['\mu = ',s_mu,'   M_{e_{max}} = ',s_a])
+                title(['\mu = ',s_mu,'                      M_{e_{max}} = ',s_a])
             end
             
 
