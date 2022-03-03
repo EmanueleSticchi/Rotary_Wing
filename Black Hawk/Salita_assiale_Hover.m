@@ -52,17 +52,22 @@ for i =1:length(Vtheta0)
     ylabel('Q_c')
     hold on 
 
-    figure(3)
-    plot(s.Tc,s.Qc,'DisplayName',name)
-    xlabel('T_c')
-    ylabel('Q_c')
-    hold on 
-
     %% Figure of Merit
-
-    FM(i) = s.Tc(s.mu == 0)^1.5/sqrt(2)/s.Qc(s.mu == 0);
+    Tc_hover(i) = s.Tc(s.mu == 0);
+    Qc_hover(i) = s.Qc(s.mu == 0);
+    FM(i)       = s.Tc(s.mu == 0)^1.5/sqrt(2)/s.Qc(s.mu == 0);
     disp(['Figure of Merit, FM = ',num2str(FM(i))])
 end
+figure
+plot(Tc_hover,Qc_hover)
+xlabel('T_c')
+ylabel('Q_c')
+grid on
+ax = gca;
+ax.FontSmoothing = 'on';
+ax.TickLength = [0.005 0.025];
+ax.TickDir = 'in';
+
 figure
 plot(Vtheta0*180/pi,FM)
 xlabel('\theta_0 [^\circ]')
@@ -74,7 +79,7 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 
 % Ricollocazione delle figure in unica figura
-for i =1 : 3
+for i =1 : 2
    figure(i) 
    legend('AutoUpdate','off')
 %    xline(0)
