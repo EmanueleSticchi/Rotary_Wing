@@ -1,6 +1,7 @@
 %% Analisi Rotore Principale HUGHES HELICOPTERS HH-02 AIRFOIL in SALITA ASSIALE
 clc; clear; close all
 global aero
+m2tflag = 1;
 %% Data -------------------------------------------------------------------
 % geometry
 rotore   = Rotor();
@@ -37,7 +38,7 @@ for i =1:length(Vtheta0)
 
 %% Graphics
     s = rotore.Analisi_salita{rotore.n_analisi_salita,1};
-    name = ['\theta_0 = ',num2str(theta0*180/pi),' deg'];
+    name = ['\theta_0 = ',num2str(theta0*180/pi),'\circ'];
     
     figure(1)
     plot(s.mu,s.Tc,'DisplayName',name)
@@ -64,14 +65,39 @@ for i =1:length(Vtheta0)
 end
 figure
 plot(Vtheta0*180/pi,FM)
-xlabel('\theta_0 [deg]')
+xlabel('\theta_0 [^\circ]')
 ylabel('FM')
+grid on
+ax = gca;
+ax.FontSmoothing = 'on';
+ax.TickLength = [0.005 0.025];
+ax.TickDir = 'in';
+
+% Ricollocazione delle figure in unica figura
 for i =1 : 3
    figure(i) 
    legend('AutoUpdate','off')
-   xline(0)
-   yline(0)
+%    xline(0)
+%    yline(0)
    grid on
+   ax = gca;
+   ax.FontSmoothing = 'on';
+   ax.TickLength = [0.005 0.025];
+   ax.TickDir = 'in';
+end
+h_fig_1 = figure(1); 
+h_fig_2 = figure(2); 
+h_fig_3 = figure(3); 
+h_fig_4 = figure(4); 
+
+%% Salvataggio dei file '.tex'
+if m2tflag == 1
+        matlab2tikz('filename','mu_Tc', 'figurehandle', h_fig_1);
+        matlab2tikz('filename','mu_Qc', 'figurehandle', h_fig_2);
+        matlab2tikz('filename','hover_polar', 'figurehandle', h_fig_3);
+        matlab2tikz('filename','figure_of_merit', 'figurehandle', h_fig_4);
+    else
+        disp('Non stai generando nessun file .tex!');
 end
 %% Function ---------------------------------------------------------------
 function CL=CL_(alpha)
@@ -98,3 +124,5 @@ global aero
         CD=interp1(aero.alpha,aero.Cd,alpha);
     end
 end
+
+

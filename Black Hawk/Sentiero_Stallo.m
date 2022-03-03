@@ -1,6 +1,8 @@
 %%  Sentiero di stallo per il rotore principale
 clc; clear; close all
 global aero
+pngflag = 0;
+
 %% Data -------------------------------------------------------------------
 rotore   = Rotor();
 % aerodynamics
@@ -31,43 +33,60 @@ rotore   = rotore.mass_prop('I',I_MR);        % Mom. di inerzia [Kg*m^2]
 rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 
-[s,r,c] = rotore.sentiero_stallo(alpha_max_2D,1:0.01:1.12,'T',W,Chi,f);
+% [s,r,c] = rotore.sentiero_stallo(alpha_max_2D,1:0.01:1.12,'T',W,Chi,f);
+
+VVec  = linspace(1,1.12,6);
+counter = 0;
+
+for i = 1:length(VVec)
+    [s,r,c] = rotore.sentiero_stallo(alpha_max_2D,VVec(1:i),'T',W,Chi,f);
+end
+
+if pngflag == 1
+    for i = 1:2*length(VVec)
+        figure(i)
+        if mod(i,2) == 0 || i == 1
+            FileName = sprintf('Sds%d.png', counter);
+            ax = gca;
+            exportgraphics(ax,FileName)
+            counter = counter + 1;
+        end
+    end
+    else
+        disp('Non stai generando nessun file .png!');
+end
 
 
-
-
-
-
-%%  Graphics --------------------------------------------------------------
-M_e = s.Mach_e;
-figure
-% Create polar data
-[r,psi] = meshgrid(rotore.r_bar,s.options.Psi);
-% Convert to Cartesian
-x = r.*cos(psi);
-y = r.*sin(psi);
-% define polar axes
-h = polar(x,y);
-hold on;
-polar(s.options.Psi,rotore.r_bar(1)*ones(length(s.options.Psi),1),'k')
-polar(s.options.Psi,rotore.r_bar(end)*ones(length(s.options.Psi),1),'k')
-% contourf(x,y,alpha_e');
-pc= pcolor(x,y,M_e');
-contour(x,y,M_e','k','ShowText','on');
-shading interp
-% colormap 'hsv'
-cbar=colorbar(gca);
-cbar.Label.String = 'M_e';
-cbar.Label.FontSize= 16;
-% cbar.Limits = [-10 10];
-
-% Hide the POLAR function data and leave annotations
-set(h,'Visible','off')
-% Turn off axes and set square aspect ratio
-axis off
-axis image
-view([90 90])
-s_mu = sprintf('%0.2f',s.mu/cos(s.alpha_TPP_Vec));
-s_a  = sprintf('%0.2f',max(M_e,[],'all'));
-title(['\mu = ',s_mu,'   M_{e_{max}} = ',s_a])
+% %%  Graphics --------------------------------------------------------------
+% M_e = s.Mach_e;
+% figure
+% % Create polar data
+% [r,psi] = meshgrid(rotore.r_bar,s.options.Psi);
+% % Convert to Cartesian
+% x = r.*cos(psi);
+% y = r.*sin(psi);
+% % define polar axes
+% h = polar(x,y);
+% hold on;
+% polar(s.options.Psi,rotore.r_bar(1)*ones(length(s.options.Psi),1),'k')
+% polar(s.options.Psi,rotore.r_bar(end)*ones(length(s.options.Psi),1),'k')
+% % contourf(x,y,alpha_e');
+% pc= pcolor(x,y,M_e');
+% contour(x,y,M_e','k','ShowText','on');
+% shading interp
+% % colormap 'hsv'
+% cbar=colorbar(gca);
+% cbar.Label.String = 'M_e';
+% cbar.Label.FontSize= 16;
+% % cbar.Limits = [-10 10];
+% 
+% % Hide the POLAR function data and leave annotations
+% set(h,'Visible','off')
+% % Turn off axes and set square aspect ratio
+% axis off
+% axis image
+% view([90 90])
+% s_mu = sprintf('%0.2f',s.mu/cos(s.alpha_TPP_Vec));
+% s_a  = sprintf('%0.2f',max(M_e,[],'all'));
+% title(['\mu = ',s_mu,'   M_{e_{max}} = ',s_a])
 
