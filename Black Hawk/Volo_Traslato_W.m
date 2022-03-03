@@ -125,7 +125,7 @@ for i =1: length(vW)
     plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.beta0_Vec*180/pi,'-k');
     hold on
     plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.beta1c_Vec*180/pi,'--k');
-    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.beta1s_Vec*180/pi,'.-k');
+    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.beta1s_Vec*180/pi,':k');
     xlabel('$\mu$','Interpreter','Latex','FontSize',ftsize);
     ylabel('$\beta_0~\beta_{1,s}~\beta_{1,c}$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
     grid on
@@ -136,7 +136,7 @@ for i =1: length(vW)
     ax.TickDir = 'in';
     ax.XMinorTick = 'on';
     ax.YMinorTick = 'on';
-    leg = legend('$\beta_0$','$\beta_{1,s}$','$\beta_{1,s}$','Location','southwest');
+    leg = legend('$\beta_0$','$\beta_{1,c}$','$\beta_{1,s}$','Location','southwest');
     leg.Orientation = 'vertical';
     leg.Interpreter = 'latex';
     leg.Color = 'none';

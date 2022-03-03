@@ -234,9 +234,9 @@ legend style={at={(0.03,0.03)}, anchor=south west, legend cell align=left, align
 0.434920398883844	-9.05159234162443\\
 0.439353685920581	-9.31325785166811\\
 };
-\addlegendentry{$\beta_{1,c}$}
+\addlegendentry{$\beta_{1,s}$}
 
-\addplot [color=black, dotted]
+\addplot [color=black, mark=*, mark options={solid, black}]
   table[row sep=crcr]{%
 0.000451910331126094	-0.00213213392443042\\
 0.00488525049477838	-0.0230425827887986\\
@@ -547,7 +547,7 @@ legend style={at={(0.03,0.03)}, anchor=south west, legend cell align=left, align
 0.434920271029507	-8.92552114014219\\
 0.439353761295749	-9.14829829074676\\
 };
-\addplot [color=black, dotted, forget plot]
+\addplot [color=black, mark=*, mark options={solid, black}, forget plot]
   table[row sep=crcr]{%
 0.000451909999378042	-0.00237840735794672\\
 0.00488525855507299	-0.0257050481794068\\
@@ -856,7 +856,7 @@ legend style={at={(0.03,0.03)}, anchor=south west, legend cell align=left, align
 0.434920219666367	-8.98898514922672\\
 0.439353679745876	-9.18164603253964\\
 };
-\addplot [color=black, dotted, forget plot]
+\addplot [color=black, mark=*, mark options={solid, black}, forget plot]
   table[row sep=crcr]{%
 0.000451909730956222	-0.00262389302379419\\
 0.0048852587522041	-0.0283589943547145\\
@@ -976,4 +976,5 @@ axis x line*=bottom,
 axis y line*=left
 ]
 \end{axis}
+\draw[->] (0.58273381294964,0.636690647482014)-- (0.763845605700713 0.902612826603325) node[below] {$W$};;
 \end{tikzpicture}%
