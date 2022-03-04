@@ -1,7 +1,7 @@
 %%  Analisi Rotore Principale in volo tralato
 clc; clear; close all
 global aero
-m2tflag = 1;
+m2tflag = 0;
 ftsize = 12;
 %% Data -------------------------------------------------------------------
 rotore   = Rotor();
@@ -101,9 +101,9 @@ for i =1: length(vW)
     hold on
     
     h_fig_mu_Hc_trasl = figure(5);
-    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.Hc_Vec,formatspec{i,1},'DisplayName',name);
+    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.Hc,formatspec{i,1},'DisplayName',name);
     xlabel('$\mu$','Interpreter','Latex','FontSize',ftsize);
-    ylabel('$H_c$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+    ylabel('$\alpha_{TPP}$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
     grid on
     ax = gca;
     ax.FontSmoothing = 'on';
@@ -115,9 +115,9 @@ for i =1: length(vW)
     hold on
     
     h_fig_mu_Yc_trasl = figure(6);
-    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.Yc_Vec,formatspec{i,1},'DisplayName',name);
+    plot(s.mu.*cos(s.alpha_TPP_Vec).^-1,s.Yc,formatspec{i,1},'DisplayName',name);
     xlabel('$\mu$','Interpreter','Latex','FontSize',ftsize);
-    ylabel('$Y_c$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+    ylabel('$\alpha_{TPP}$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
     grid on
     ax = gca;
     ax.FontSmoothing = 'on';
@@ -176,7 +176,7 @@ for i =1:6
     leg.Orientation = 'vertical';
     leg.Interpreter = 'latex';
     leg.Color       = 'none';
-    leg.Location    = 'northwest';
+    leg.Location    = 'best';
     leg.FontSize    = 12;
 end 
 figure(7)
@@ -192,18 +192,17 @@ annotation('textarrow',[0.739208633093526 0.705035971223025],...
 annotation('textarrow',[0.732014388489209 0.663669064748205],...
     [0.422802850356295 0.299287410926367],'String',{'W'});
 %% Salvataggio dei file '.tex'
-folder = 'Immagini\Volo_Traslato\';
 if m2tflag == 1
-    matlab2tikz('filename',[folder,'mu_Pc_trasl'], 'figurehandle', h_fig_mu_Pc_trasl);
-    matlab2tikz('filename',[folder,'mu_Tc_trasl'], 'figurehandle', h_fig_mu_Tc_trasl);
-    matlab2tikz('filename',[folder,'mu_theta0_trasl'], 'figurehandle', h_fig_mu_theta0_trasl);
-    matlab2tikz('filename',[folder,'mu_a_TPP_trasl'], 'figurehandle', h_fig_mu_a_TPP_trasl);
-    matlab2tikz('filename',[folder,'mu_Hc_trasl'], 'figurehandle', h_fig_mu_Hc_trasl);
-    matlab2tikz('filename',[folder,'mu_Yc_trasl'], 'figurehandle', h_fig_mu_Yc_trasl);
-    matlab2tikz('filename',[folder,'mu_lam_trasl'], 'figurehandle', h_fig_mu_lam_trasl);
-    matlab2tikz('filename',[folder,'flapp_trasl'], 'figurehandle', h_fig_mu_flapp_trasl);
-else
-    disp('Non stai generando nessun file .tex!');
+        matlab2tikz('filename','mu_Pc_trasl', 'figurehandle', h_fig_mu_Pc_trasl);
+        matlab2tikz('filename','mu_Tc_trasl', 'figurehandle', h_fig_mu_Tc_trasl);
+        matlab2tikz('filename','mu_theta0_trasl', 'figurehandle', h_fig_mu_theta0_trasl);
+        matlab2tikz('filename','mu_a_TPP_trasl', 'figurehandle', h_fig_mu_a_TPP_trasl);
+        matlab2tikz('filename','mu_theta0_trasl', 'figurehandle', h_fig_mu_Hc_trasl);
+        matlab2tikz('filename','mu_a_TPP_trasl', 'figurehandle', h_fig_mu_Yc_trasl);
+        matlab2tikz('filename','mu_lam_trasl', 'figurehandle', h_fig_mu_lam_trasl);
+        matlab2tikz('filename','flapp_trasl', 'figurehandle', h_fig_mu_flapp_trasl);
+    else
+        disp('Non stai generando nessun file .tex!');
 end
 
 
