@@ -351,6 +351,7 @@ classdef Rotor
                 s_art.Pc0_Vec(i)       = Pc0;
                 s_art.Hc_i_Vec(i)      = Hc_i;
                 s_art.Hc_0_Vec(i)      = Hc_0;
+                s_art.Hc_Vec(i)        = Hc;
                 s_art.Yc_Vec(i)        = Yc;
                 s_art.beta0_Vec(i)     = beta0;
                 s_art.beta1c_Vec(i)    = beta1c;
