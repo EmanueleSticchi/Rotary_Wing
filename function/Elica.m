@@ -5,6 +5,7 @@ classdef Elica
     % ---------------------------------------------------------------------
         N     {mustBeInteger, mustBeFinite}        % Numero di pale
         D     {mustBePositive, mustBeFinite}       % Diametro elica, [m]
+        A_D   {mustBePositive, mustBeFinite}       % Area disco elica,[m2]
         R     {mustBePositive, mustBeFinite}       % Raggio dell'elica, [m]                
         theta (:,1){mustBeReal, mustBeFinite}%Angoli di calettamento, [rad]
         c     (:,1){mustBeNonnegative, mustBeFinite}% Corda delle sezioni, [m]
@@ -51,10 +52,19 @@ classdef Elica
             obj.r_bar=vec_r;
             obj.n_r=length(obj.r_bar);
         end
-        % calcolo della solidità
-        function obj = sigma_(obj)
+        % Compute some mass and geometric property. This function needs to
+        % be called before doing any other calculations but still after the
+        % definition of the main properties(N,c,r_bar,R). The function needs to be
+        % called only once. The function computes any derived property.
+        function obj = derived_properties(obj)
+            obj.D     = obj.R*2;
+            obj.A_D   = pi*obj.R*obj.R;
             obj.sigma=obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
         end
+%         % calcolo della solidità
+%         function obj = sigma_(obj)
+%             obj.sigma=obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+%         end
         % calcolo delle velocità di rotazione
         function obj = rot_vel(obj,valIN,val)
             switch valIN
