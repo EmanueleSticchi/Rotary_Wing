@@ -37,6 +37,8 @@ classdef Elica
         sound_vel {mustBePositive, mustBeFinite}
         temp      {mustBePositive, mustBeFinite}
         mu_visc   {mustBePositive, mustBeFinite}
+        % funzionamento
+        OmR
         % ---------------------------------------------------------------------
         % Analisi
         % ---------------------------------------------------------------------
@@ -54,12 +56,13 @@ classdef Elica
         end
         % Compute some mass and geometric property. This function needs to
         % be called before doing any other calculations but still after the
-        % definition of the main properties(N,c,r_bar,R). The function needs to be
+        % definition of the main properties(N,c,r_bar,R,omega). The function needs to be
         % called only once. The function computes any derived property.
         function obj = derived_properties(obj)
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
-            obj.sigma=obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+            obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+            obj.OmR   = obj.omega*obj.r_bar.*obj.R;
         end
 %         % calcolo della solidità
 %         function obj = sigma_(obj)
@@ -169,7 +172,7 @@ classdef Elica
             [f,J_,alpha,phi,a,ap,lambda1,lambda2,M,Re]=obj.func(alpha1,J,idx,options);
 
         end
-        function obj=BEMT(obj,J,alpha0,alpha1,options)
+        function obj=BEMT(obj,J,alpha0,options)
         % Calcola le prestazioni dell'elica per tutte le stazioni radiali
         %  e per una serie di valori del rapporto di funzionamento, con il 
         %  metodo delle Secanti.
@@ -185,7 +188,6 @@ classdef Elica
             obj
             J      (:,1){mustBeNonnegative,mustBeFinite}
             alpha0 (1,1){mustBeReal,mustBeFinite}=0
-            alpha1 (1,1){mustBeReal,mustBeFinite}=10*pi/180; 
             options = BEMTset();
         end
         % -----------------------------------------------------------------
@@ -268,7 +270,20 @@ classdef Elica
             end
             options.Design='on';
             options.P_correction='on';
+            if isempty(obj.LAMBDA)
+                obj.LAMBDA = zeros(obj.nr,1); 
+            end
         % -----------------------------------------------------------------
+            if isequal(options.Freccia_opt,'on')
+                for i =1:obj.n_r
+                    M_eff = sqrt((obj.OmR(i))^2+(J*obj.n*obj.D)^2)/obj.sound_vel;
+                    if M_eff > options.M_lim
+                        obj.LAMBDA(i) = acos(options.M_lim/M_eff);
+                    else
+                        obj.LAMBDA(i) = 0;
+                    end
+                end
+            end
             V_inf=J*obj.n*obj.D;
             A=pi*obj.R^2;
             CT= T/(obj.rho*obj.n^2*obj.D^4);
