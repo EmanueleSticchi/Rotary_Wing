@@ -380,12 +380,31 @@ classdef Elica
             Y=obj.r_bar'.*obj.R;
             Y=repmat(Y,length(x),1);
             light('Style','local','Position',[1 -1 0]);
-
+            % plot di una sola pala
+            figure
             s=surf(X,Y,Z,'FaceColor',[0.65 0.65 0.65],'FaceLighting',...
                 'gouraud','EdgeColor','none');
             daspect([1 1 1])
             camlight right 
             % material dull
+            
+            % plot di tutte le pale
+            figure
+            light('Style','local','Position',[1 -1 0]);
+            ang_blade=2*pi/obj.N;
+            xyz=[X(:),Y(:),Z(:)];
+            ang = 0;
+            hold on
+            grid on
+            for i =1:obj.N
+                xyz_rot=xyz*R3(ang);
+                X_rot=reshape(xyz_rot(:,1),[length(x),obj.n_r]);
+                Y_rot=reshape(xyz_rot(:,2),[length(x),obj.n_r]);
+                Z_rot=reshape(xyz_rot(:,3),[length(x),obj.n_r]);
+                s=surf(X_rot,Y_rot,Z_rot,'FaceColor',[0.65 0.65 0.65],...
+                    'FaceLighting','gouraud','EdgeColor','none');
+                ang = ang + ang_blade;
+            end
 
             % Hub(cilinder)
             m=100;
@@ -398,9 +417,10 @@ classdef Elica
             Xh=repmat(xh,1,3);
             Yh=repmat(yh,1,3);
             % estrusion of the th Hub Disc
-            Zh=repmat(0.2*xh',length(xh),1);  % the heigth of the cilinder is 20% of r_hub
-            hold on
-            surf(Xh,Yh,Zh)
+            h_hub  = 0.2*r_hub;
+            zh = h_hub*[-1,0, 1 + obj.c(1)*sin(obj.theta(1))/h_hub];
+            Zh = repmat(zh,length(xh),1);  
+            surf(Xh,Yh,Zh,'FaceColor','k')
             daspect([1 1 1])
 
 %             % Hub(parabolic)
@@ -417,21 +437,7 @@ classdef Elica
 %             surf(Xh,Yh,Zh)
 %             daspect([1 1 1])
 %             camlight HEADLIGHT 
-            % other blade
-            ang_blade=2*pi/obj.N;
-            ang=0;
-
-            for i =2:obj.N
-                ang=ang+ang_blade;
-                xyz=[X(:),Y(:),Z(:)];
-                xyz_rot=xyz*R3(ang);
-                X_rot=reshape(xyz_rot(:,1),[length(x),obj.n_r]);
-                Y_rot=reshape(xyz_rot(:,2),[length(x),obj.n_r]);
-                Z_rot=reshape(xyz_rot(:,3),[length(x),obj.n_r]);
-                s=surf(X_rot,Y_rot,Z_rot,'FaceColor',[0.65 0.65 0.65],...
-                    'FaceLighting','gouraud','EdgeColor','none');
-
-            end
+            
         end
         
         
