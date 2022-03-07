@@ -38,9 +38,9 @@ el.Cd = @(alpha,r_bar,M,Re) 0.01*alpha./alpha;
 
 %% Analisi BEMT --------------------------------------------------------
 
-alpha0=2*pi/180;      alpha1=10*pi/180;
+alpha0=2*pi/180;
 options=BEMTset();      options.P_correction='on';
-el=el.BEMT(J,alpha0,alpha1,options);
+el=el.BEMT(J,alpha0,options);
 
 %% Post - Processing
 s = el.Analisi{1, 1};
@@ -123,7 +123,6 @@ end
 data=importdata('NACA 16-212.dat');
 x=data.data(:,1);
 z=data.data(:,2);
-figure
 el.Model3D(x,z)
 
 figure
