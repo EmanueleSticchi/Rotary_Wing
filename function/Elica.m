@@ -271,7 +271,7 @@ classdef Elica
             options.Design='on';
             options.P_correction='on';
             if isempty(obj.LAMBDA)
-                obj.LAMBDA = zeros(obj.nr,1); 
+                obj.LAMBDA = zeros(obj.n_r,1); 
             end
         % -----------------------------------------------------------------
             if isequal(options.Freccia_opt,'on')
@@ -328,7 +328,7 @@ classdef Elica
             obj.c=(2*pi)*obj.sigma.*obj.r_bar*obj.R/obj.N;
             obj.theta=phi+alpha_id;
 
-            obj=obj.BEMT(V_inf/(obj.n*obj.D),-2*pi/180,10*pi/180,options);
+            obj=obj.BEMT(V_inf/(obj.n*obj.D),-2*pi/180,options);
             f=obj.Des/CT -1;
         end
         function F=F_(obj,lambda)
