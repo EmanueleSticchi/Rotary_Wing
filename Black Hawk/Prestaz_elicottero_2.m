@@ -1,6 +1,6 @@
 clear all; close all; clc;
 ftsize= 12;
-m2tflag = 0;
+m2tflag = 1;
 % Helicopter: class definition
 heli_1            = Helicopter();
 
@@ -56,41 +56,48 @@ f = f*pi*(heli_1.MR.R)^2;
 h = 0;
 %% Level flight & Perfomance
 V_inf_Vec = linspace(0,convvel(350,'km/h','m/s'),50);
-W_vec     = linspace(W_min,heli_1.W_mtow,70);
+W_vec     = linspace(W_min,heli_1.W_mtow,10);
 W_kg      = W_vec./9.81;
 
 for i = 1:length(W_vec)
-W  = W_vec(i);
-heli_1 = heli_1.Performance_Heli(0,2*heli_1.engine_power,W,f,heli_1.fuel_load);
-sp = heli_1.PerfA{heli_1.n_PerfA,1};
-V_max(i)     = sp.V_max;
-V_BE(i)      = sp.V_BE;
-V_BR(i)      = sp.V_BR;
-Endu(i)      = sp.Endu;
-Range(i)     = sp.Range;
-Vd_autorot(i)= sp.Vd_autorot_min;
-ROC_max(i)   = sp.ROC_max;
-gamma_max(i) = sp.gamma_max;
-ROD_min(i)   = sp.ROD_min;
-gamma_min(i) = sp.gamma_min;
+    W  = W_vec(i);
+    heli_1 = heli_1.Performance_Heli(0,1*heli_1.engine_power,W,f,heli_1.fuel_load);
+    sp = heli_1.PerfA{heli_1.n_PerfA,1};
+    V_max(i)     = sp.V_max;
+    V_BE(i)      = sp.V_BE;
+    V_BR(i)      = sp.V_BR;
+    Endu(i)      = sp.Endu;
+    Range(i)     = sp.Range;
+    Vd_autorot(i)= sp.Vd_autorot_min;
+    ROC_max(i)   = sp.ROC_max;
+    gamma_max(i) = sp.gamma_max;
+
+    ROD_min(i)   = sp.ROD_min;
+    gamma_min(i) = sp.gamma_min;
 end
 
+for i = 1:length(W_vec)
+    W  = W_vec(i);
+    heli_1 = heli_1.Performance_Heli(0,0.75*heli_1.engine_power,W,f,heli_1.fuel_load);
+    sp75 = heli_1.PerfA{heli_1.n_PerfA,1};
+    gamma_max75(i) = sp75.gamma_max;
+end
 
 %% Graphics
 h_fig_1 = figure;
-plot(W_kg,V_max,'^k')
+plot(W_kg([1,length(W_kg)]),V_max([1,length(W_kg)]),'-k')
 xlabel('$W[kg]$','Interpreter','Latex','FontSize',ftsize);
 ylabel('$V_{max}[m/s]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
-
-h_fig_2 = figure;
-plot(W_kg,V_BE,'^k')
-xlabel('$W[kg]$','Interpreter','Latex','FontSize',ftsize);
-ylabel('$V_{BE}[m/s]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
-
-h_fig_3 = figure;
-plot(W_kg,V_BR,'^k')
-xlabel('$W[kg]$','Interpreter','Latex','FontSize',ftsize);
-ylabel('$V_{BR}[m/s]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+hold on
+plot(W_kg([1,length(W_kg)]),V_BE([1,length(W_kg)]),'--k')
+plot(W_kg([1,length(W_kg)]),V_BR([1,length(W_kg)]),'.-k')
+leg = legend('$V_{max}$',...
+             '$V_{BE}$',...
+             '$V_{BR}$',...
+             'Location','east');
+leg.Orientation = 'vertical';
+leg.Interpreter = 'latex';
+leg.Color = 'none';
 
 h_fig_4 = figure;
 plot(W_kg,Endu,'-k')
@@ -114,8 +121,16 @@ ylabel('$ROC_{max}$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
 
 h_fig_8 = figure;
 plot(W_kg,convang(gamma_max,'rad','deg'),'-k')
+hold on
+plot(W_kg,convang(gamma_max75,'rad','deg'),'--k')
 xlabel('$W[kg]$','Interpreter','Latex','FontSize',ftsize);
 ylabel('$\gamma_{max}[^{\circ}]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+leg = legend('$P = P(OEI)$',...
+             '$P = 75\%P(OEI)$',...
+             'Location','east');
+leg.Orientation = 'vertical';
+leg.Interpreter = 'latex';
+leg.Color = 'none';
 
 h_fig_9 = figure;
 plot(W_kg,ROD_min,'-k')
@@ -127,7 +142,7 @@ plot(W_kg,convang(gamma_min,'rad','deg'),'-k')
 xlabel('$W[kg]$','Interpreter','Latex','FontSize',ftsize);
 ylabel('$\gamma_{min}[^{\circ}]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
 
-for i =1:10
+for i =1:8
     figure(i)
     grid on
     ax = gca;
@@ -139,3 +154,14 @@ for i =1:10
     ax.YMinorTick = 'on';
 end
 
+%% Salvataggio dei file '.tex'
+if m2tflag == 1
+%         matlab2tikz('filename','V_max', 'figurehandle', h_fig_1);
+%         matlab2tikz('filename','Endu', 'figurehandle', h_fig_4);
+%         matlab2tikz('filename','Range', 'figurehandle', h_fig_5);
+%         matlab2tikz('filename','Vd_autorot', 'figurehandle', h_fig_6);
+%         matlab2tikz('filename','ROC_max', 'figurehandle', h_fig_7);
+        matlab2tikz('filename','gamma_max_OEI', 'figurehandle', h_fig_8);
+    else
+        disp('Non stai generando nessun file .tex!');
+end

@@ -1,6 +1,7 @@
 clear all; close all; clc;
 ftsize= 12;
 m2tflag = 0;
+pngflag = 1;
 % Helicopter: class definition
 heli_1            = Helicopter();
 
@@ -92,7 +93,7 @@ leg = legend('$P_{i}$',...
              '$P_{0}$',...
              '$P_{\textup{fus}}$',...
              '$P_{\textup{req}}$',...
-             'Location','northeast');
+             'Location','northwest');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -116,7 +117,7 @@ ax.YMinorTick = 'on';
 leg = legend('$P_{i}$',...
              '$P_{0}$',...
              '$P_{\textup{req}}$',...
-             'Location','northeast');
+             'Location','northwest');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -144,7 +145,7 @@ leg = legend('$P_{req,TR}$',...
              '$P_{aux}$',...
              '$P_{av}$',...
              '$P_{tot}$',...
-             'Location','northeast');
+             'Location','northwest');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -186,21 +187,28 @@ leg = legend(['$P_{tot}(W = $', sprintf('%0.0f',(W_kg(1))) '$~kg)$'],...
              '$V_{BE}$',...
              '$V_{BR}$',...
              '$V_{max}$',...
-             'Location','southeast');
+             'Location','northwest',...
+             'Orientation','vertical',...
+             'NumColumns',2,...
+             'AutoUpdate','off');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
 
-max_ROC = max(heli_1.PA{i,1}.Vc);
-
+%%
 h_fig_ROC = figure; 
 for i = 1:length(W)
 plot(V_inf_Vec,heli_1.PA{i,1}.Vc,[formatspec{i},'k']);
 hold on
 end
+for i = 1:1:length(W)
+max_ROC = max(heli_1.PA{i,1}.Vc);
+V_maxROC= V_inf_Vec(heli_1.PA{i,1}.Vc == max_ROC);
+plot(V_maxROC,max_ROC,'ok');
+% [max_deriv,index] = max(deriv(i,:));
+% plot(V_inf_Vec(index),heli_1.PA{i,1}.Vc(index),'^k');
+end
 plot(V_inf_Vec, zeros(length(V_inf_Vec),1),'-k')
-plot(V_inf_Vec, zeros(length(V_inf_Vec),1),'-k')
-
 xlabel('$V_{\infty}[m/s]$','Interpreter','Latex','FontSize',ftsize);
 ylabel('$ROC[m/s]$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
 grid on
@@ -211,14 +219,38 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$P_{tot}(W = $', sprintf('%0.0f',(W_kg(1))) '$~kg)$'],...
-             ['$P_{tot}(W = $', sprintf('%0.0f',(W_kg(2))) '$~kg)$'],...
-             ['$P_{tot}(W = $', sprintf('%0.0f',(W_kg(3))) '$~kg)$'],...
-             ['$P_{tot}(W = $', sprintf('%0.0f',(W_kg(4))) '$~kg)$'],...
+leg = legend(['$W = $', sprintf('%0.0f',(W_kg(1))) '$~kg$'],...
+             ['$W = $', sprintf('%0.0f',(W_kg(2))) '$~kg$'],...
+             ['$W = $', sprintf('%0.0f',(W_kg(3))) '$~kg$'],...
+             ['$W = $', sprintf('%0.0f',(W_kg(4))) '$~kg$'],...
+             '$salita~rapida$',...
              'Location','south');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
 
+%% Salvataggio dei file '.tex'
+folder = 'Immagini\Prest_heli\';
 
+if m2tflag == 1
+        matlab2tikz('filename',[folder,'power_tot'], 'figurehandle', h_fig_req_pow_tot);
+        matlab2tikz('filename',[folder,'power_MR'], 'figurehandle', h_fig_req_pow_MR);
+        matlab2tikz('filename',[folder,'power_TR'], 'figurehandle', h_fig_req_pow_TR);
+        matlab2tikz('filename',[folder,'power_weight'], 'figurehandle', h_fig_req_W);
+        matlab2tikz('filename',[folder,'ROC_weight'], 'figurehandle', h_fig_ROC);
+    else
+        disp('Non stai generando nessun file .tex!');
+end
 
+if pngflag == 1
+    counter = 0;
+    for i = 1:5
+        counter = counter + 1;
+        figure(i)
+        FileName = sprintf('prest%d.eps', counter);
+        ax = gca;
+        exportgraphics(ax,[folder,FileName])
+    end
+else
+    disp('Non stai generando nessun file .png!');
+end
