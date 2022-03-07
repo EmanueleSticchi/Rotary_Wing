@@ -62,7 +62,6 @@ classdef Elica
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
             obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
-            obj.OmR   = obj.omega*obj.r_bar.*obj.R;
         end
 %         % calcolo della solidità
 %         function obj = sigma_(obj)
@@ -86,6 +85,7 @@ classdef Elica
                 otherwise 
                     mustBeMember(valIN,{'RPM','n','omega'})
             end
+            obj.OmR   = obj.omega*obj.r_bar*obj.R;
         end
         % assegna le prestazioni aerodinamiche di profilo in funzione di 
         % dati tabulari... Da modificare
@@ -346,11 +346,21 @@ classdef Elica
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% PLOTTING
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function Model3D(obj,x,z)
+        function Model3D(obj,x,z) %,center
             % Plot 3D model of the propeller
             % INPUT:
             % - x e z               Airfoil coordinate (in percent of chord)
+            % - center              x coordinate of the center of the
+            %                       propeller (by default is assumed the 
+            %                       center of the local chord)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             arguments
+%                 obj
+%                 x
+%                 z
+%                 center
+%             end
+            %--------------------------------------------------------------
             % plot the first blade
             xz=[x,z];
             for i=1:obj.n_r
@@ -380,32 +390,33 @@ classdef Elica
             % Hub(cilinder)
             m=100;
             % create Hub disc
-            xh=linspace(-obj.r_bar(1),obj.r_bar(1),m)*obj.R;
-            yh=sqrt((obj.r_bar(1)*obj.R)^2-xh.^2);
+            r_hub = obj.r_bar(1)*obj.R;
+            xh=linspace(-r_hub,r_hub,m);
+            yh=sqrt((r_hub)^2-xh.^2);
             xh=[xh,flip(xh)]';
             yh=[yh,-yh]';
             Xh=repmat(xh,1,3);
             Yh=repmat(yh,1,3);
             % estrusion of the th Hub Disc
-            Zh=repmat(-0.1:0.1:0.1,length(xh),1);
+            Zh=repmat(0.2*xh',length(xh),1);  % the heigth of the cilinder is 20% of r_hub
             hold on
             surf(Xh,Yh,Zh)
             daspect([1 1 1])
 
-            % Hub(parabolic)
-            m=100;
-            % create Hub disc
-            xh=linspace(-obj.r_bar(1),obj.r_bar(1),m)'*obj.R;
-            yh=xh;
-            [Xh,Yh]=meshgrid(xh,yh);
-            % estrusion of the th Hub Disc
-            k=20;
-            Zh =-k*Xh.^2-k*Yh.^2+0.2;   
-            
-            hold on
-            surf(Xh,Yh,Zh)
-            daspect([1 1 1])
-            camlight HEADLIGHT 
+%             % Hub(parabolic)
+%             m=100;
+%             % create Hub disc
+%             xh=linspace(-obj.r_bar(1),obj.r_bar(1),m)'*obj.R;
+%             yh=xh;
+%             [Xh,Yh]=meshgrid(xh,yh);
+%             % estrusion of the th Hub Disc
+%             k=20;
+%             Zh =-k*Xh.^2-k*Yh.^2+0.2;   
+%             
+%             hold on
+%             surf(Xh,Yh,Zh)
+%             daspect([1 1 1])
+%             camlight HEADLIGHT 
             % other blade
             ang_blade=2*pi/obj.N;
             ang=0;
