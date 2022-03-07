@@ -189,10 +189,17 @@ classdef Elica
             options = BEMTset();
         end
         % -----------------------------------------------------------------
+        % settare alpha in modo tale che il valore di tentativo cambia ogni
+        % volta
+        alpha  = alpha0;
             for jdx=1:length(J)
+                if jdx>1
+                    alpha = s.alpha(jdx-1,1);
+                end
                 for idx =1:obj.n_r
+                    alpha1 = 1.3*alpha;
                     [~,~,alpha,phi,a,ap,lambda1,lambda2,M,Re]=BEMT_rJ_fix(obj,...
-                                           alpha0,alpha1,J(jdx),idx,options);
+                                           alpha,alpha1,J(jdx),idx,options);
                     s.alpha(jdx,idx)=alpha;
                     s.phi(jdx,idx)=phi;
                     s.a(jdx,idx)=a;
