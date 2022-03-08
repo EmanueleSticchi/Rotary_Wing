@@ -1,7 +1,7 @@
 %%  Mappa per gli angoli per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 1;       %flag per il salvatagio delle immagini 
+pngflag = 0;       %flag per il salvatagio delle immagini 
 folderA = 'Immagini\Mappa_AoA\';
 folderM = 'Immagini\Mappa_Mach\';
 %% Data -------------------------------------------------------------------

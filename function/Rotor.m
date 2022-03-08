@@ -573,7 +573,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% PLOTTING
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function s=alphamap(obj,valIN,val)
+        function s=alphamap(obj,valIN,val,color)
             % Plot alpha_e contour
             % INPUT:
             % - valIN:    flag per l'input val:
@@ -586,8 +586,19 @@ classdef Rotor
             %                   - 'Solve' -> in tal caso val dovrà essere
             %                   una cell array  6x1 con gli input da dare
             %                   alla funzione BEMT_articulated 
+            % - color:    flag per il pcolor:
+            %                   - 'on'    -> plotta il contour a colori
+            %                   - altro   -> plotta le isolinee senza
+            %                   colori
             %                 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            arguments
+                obj
+                valIN
+                val
+                color = 'on'
+            end
+            %--------------------------------------------------------------
             switch valIN
                 case 'Plot'
                     s=val{1,1};
@@ -614,6 +625,7 @@ classdef Rotor
                 figure
                 idxV=idxMu(i);
                 alpha_e=s.alpha_e(:,:,idxV)*180/pi;
+                alpha_e(alpha_e <0) = 0;
                 % Create polar data
                 [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
                 % Convert to Cartesian
@@ -624,15 +636,22 @@ classdef Rotor
                 hold on;
                 polar(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
                 polar(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
-                % contourf(x,y,alpha_e');
-                pc= pcolor(x,y,alpha_e');
+                switch color
+                    case 'on'
+                        % contourf(x,y,alpha_e');
+                        pc= pcolor(x,y,alpha_e');
+                        cbar=colorbar(gca);
+                        cbar.Label.String = '\alpha_e';
+                        cbar.Label.FontSize= 16;
+                        % cbar.Limits = [-10 10];
+                    otherwise
+                        
+                end
+               
                 contour(x,y,alpha_e','k','ShowText','on');
                 shading interp
-                % colormap 'hsv'
-                cbar=colorbar(gca);
-                cbar.Label.String = '\alpha_e';
-                cbar.Label.FontSize= 16;
-                % cbar.Limits = [-10 10];
+                
+                
   
                 % Hide the POLAR function data and leave annotations
                 set(h,'Visible','off')
@@ -651,7 +670,7 @@ classdef Rotor
 
         end
         %------------------------------------------------------------------
-        function s=MachMap(obj,valIN,val)
+        function s=MachMap(obj,valIN,val,color)
             % Plot alpha_e contour
             % INPUT:
             % - valIN:    flag per l'input val:
@@ -663,9 +682,20 @@ classdef Rotor
             %                    
             %                   - 'Solve' -> in tal caso val dovrà essere
             %                   una cell array  6x1 con gli input da dare
-            %                   alla funzione BEMT_articulated 
+            %                   alla funzione BEMT_articulated
+            % - color:    flag per il pcolor:
+            %                   - 'on'    -> plotta il contour a colori
+            %                   - altro   -> plotta le isolinee senza
+            %                   colori
             %                 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            arguments
+                obj
+                valIN
+                val
+                color = 'on'
+            end
+            %--------------------------------------------------------------
             switch valIN
                 case 'Plot'
                     s=val{1,1};
@@ -703,14 +733,18 @@ classdef Rotor
                 polar(s.options.Psi,obj.r_bar(1)*ones(length(s.options.Psi),1),'k')
                 polar(s.options.Psi,obj.r_bar(end)*ones(length(s.options.Psi),1),'k')
                 % contourf(x,y,alpha_e');
-                pc= pcolor(x,y,M_e');
+                switch color
+                    case 'on'
+                        pc= pcolor(x,y,M_e');
+                        cbar=colorbar(gca);
+                        cbar.Label.String = 'Mach_e';
+                        cbar.Label.FontSize= 16;
+                    otherwise
+                        
+                end
+                
                 contour(x,y,M_e','k','ShowText','on');
                 shading interp
-                % colormap 'hsv'
-                cbar=colorbar(gca);
-                cbar.Label.String = 'Mach_e';
-                cbar.Label.FontSize= 16;
-                % cbar.Limits = [-10 10];
   
                 % Hide the POLAR function data and leave annotations
                 set(h,'Visible','off')
