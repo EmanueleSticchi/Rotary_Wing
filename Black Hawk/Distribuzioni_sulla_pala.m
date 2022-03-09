@@ -1,7 +1,7 @@
 %% Analisi Rotore Principale HUGHES HELICOPTERS HH-02 AIRFOIL in SALITA ASSIALE
 clc; clear; close all
 global aero
-m2tflag = 1;
+m2tflag = 0;
 ftsize = 12;
 folder = 'Immagini\Distribuzioni_sulla_pala\';
 
@@ -148,6 +148,39 @@ if m2tflag == 1
     else
         disp('Non stai generando nessun file .tex!');
 end
+
+% %% Calcoli con Prandtl correction
+% formatspec={'-','--',':'};
+% options   = BEMTset_rotor();          
+% options.P_correction = 'on';
+% h_fig_hover_dTc_PvsB = figure;
+% for i = 1:length(Vtheta0)-1
+%     theta0 = Vtheta0(i);
+%     rotore = rotore.BEMT_salita(V_inf,theta0,options);
+%     s1     = rotore.Analisi_salita{i,1};
+%     s      = rotore.Analisi_salita{rotore.n_analisi_salita,1};
+%     plot(rotore.r_bar,s1.dTc(2,:),[formatspec{i},'k']);
+%     hold on
+%     plot(rotore.r_bar,s.dTc(2,:) ,[formatspec{i},'^k']);
+% end
+% 
+% xlabel('$\bar{r}$','Interpreter','Latex','FontSize',ftsize);
+% ylabel('$dT_c/dr$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+% grid on
+% ax = gca;
+% ax.FontSmoothing = 'on';
+% ax.TickLabelInterpreter = 'latex';
+% ax.TickLength = [0.005 0.025];
+% ax.TickDir = 'in';
+% ax.XMinorTick = 'on'; 
+% ax.YMinorTick = 'on';
+% leg = legend(['$\theta_0 $ = ', num2str(Vtheta0_d(1)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(2)) ,'$^{\circ}$'],...
+%     ['$\theta_0 $ = ', num2str(Vtheta0_d(3)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(4)) ,'$^{\circ}$'],'Location','north');
+% leg.Orientation = 'vertical';
+% leg.Interpreter = 'latex';
+% leg.Color = 'none';
+
+
 %% Function ---------------------------------------------------------------
 function CL=CL_(alpha)
 global aero

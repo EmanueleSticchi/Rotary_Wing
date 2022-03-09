@@ -141,6 +141,41 @@ for i = 1:2
 end
 h_fig_1 = figure(1); 
 h_fig_2 = figure(2); 
+%% Calcoli con Prandtl correction
+formatspec={'-','--',':'};
+options   = BEMTset_rotor();          
+options.P_correction = 'on';
+h_fig_hover_dTc_PvsB = figure;
+ik = 0;
+for i = 1:length(Vtheta0)
+    if mod(i,30) == 0
+        ik = ik + 1;
+        
+        theta0 = Vtheta0(i);
+        rotore = rotore.BEMT_salita(V_inf,theta0,options);
+        s1     = rotore.Analisi_salita{i,1};
+        s      = rotore.Analisi_salita{rotore.n_analisi_salita,1};
+        plot(s1.mu,s1.Tc,[formatspec{ik},'k']);
+        hold on
+        plot(s.mu,s.Tc ,[formatspec{ik},'*k']);
+    end
+end
+
+xlabel('$\bar{r}$','Interpreter','Latex','FontSize',ftsize);
+ylabel('$T_c$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+grid on
+ax = gca;
+ax.FontSmoothing = 'on';
+ax.TickLabelInterpreter = 'latex';
+ax.TickLength = [0.005 0.025];
+ax.TickDir = 'in';
+ax.XMinorTick = 'on'; 
+ax.YMinorTick = 'on';
+leg = legend(['$\theta_0 $ = ', num2str(Vtheta0_d(1)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(2)) ,'$^{\circ}$'],...
+    ['$\theta_0 $ = ', num2str(Vtheta0_d(3)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(4)) ,'$^{\circ}$'],'Location','north');
+leg.Orientation = 'vertical';
+leg.Interpreter = 'latex';
+leg.Color = 'none';
 
 %% Function ---------------------------------------------------------------
 function CL=CL_(alpha)

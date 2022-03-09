@@ -1,7 +1,7 @@
 %%  Analisi Rotore Principale in volo tralato
 clc; clear; close all
 global aero
-m2tflag = 1;
+m2tflag = 0;
 ftsize = 12;
 %% Data -------------------------------------------------------------------
 rotore   = Rotor();
