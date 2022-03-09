@@ -1,7 +1,7 @@
 %%  Mappa per gli angoli per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 1;       %flag per il salvatagio delle immagini 
+pngflag = 0;       %flag per il salvatagio delle immagini 
 folderA = 'Immagini\Mappa_AoA\';
 folderM = 'Immagini\Mappa_Mach\';
 %% Data -------------------------------------------------------------------
@@ -79,8 +79,10 @@ rotore.LAMBDA = Freccia;
 data=importdata('polari HH_02\HH_02.dat');
 x=data.data(:,1);
 z=data.data(:,2);
-rotore.Model3D(x,z)
+rotore.Model3D(x,z,20*pi/180)
 
+idx = idx(end) + [1,2];
+salva('rotore','Immagini\rotore\',idx,pngflag)
 
 
 %% Function

@@ -1,8 +1,8 @@
 %%  Sentiero di stallo per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 0;
-
+pngflag = 1;
+folder = 'Immagini\SentieroDiStallo\';
 %% Data -------------------------------------------------------------------
 rotore   = Rotor();
 % aerodynamics
@@ -46,7 +46,7 @@ if pngflag == 1
     for i = 1:2*length(VVec)
         figure(i)
         if mod(i,2) == 0 || i == 1
-            FileName = sprintf('Sds%d.png', counter);
+            FileName = [folder,sprintf('Sds%d.eps', counter)];
             ax = gca;
             exportgraphics(ax,FileName)
             counter = counter + 1;
@@ -56,37 +56,6 @@ if pngflag == 1
         disp('Non stai generando nessun file .png!');
 end
 
-
-% %%  Graphics --------------------------------------------------------------
-% M_e = s.Mach_e;
-% figure
-% % Create polar data
-% [r,psi] = meshgrid(rotore.r_bar,s.options.Psi);
-% % Convert to Cartesian
-% x = r.*cos(psi);
-% y = r.*sin(psi);
-% % define polar axes
-% h = polar(x,y);
-% hold on;
-% polar(s.options.Psi,rotore.r_bar(1)*ones(length(s.options.Psi),1),'k')
-% polar(s.options.Psi,rotore.r_bar(end)*ones(length(s.options.Psi),1),'k')
-% % contourf(x,y,alpha_e');
-% pc= pcolor(x,y,M_e');
-% contour(x,y,M_e','k','ShowText','on');
-% shading interp
-% % colormap 'hsv'
-% cbar=colorbar(gca);
-% cbar.Label.String = 'M_e';
-% cbar.Label.FontSize= 16;
-% % cbar.Limits = [-10 10];
-% 
-% % Hide the POLAR function data and leave annotations
-% set(h,'Visible','off')
-% % Turn off axes and set square aspect ratio
-% axis off
-% axis image
-% view([90 90])
-% s_mu = sprintf('%0.2f',s.mu/cos(s.alpha_TPP_Vec));
-% s_a  = sprintf('%0.2f',max(M_e,[],'all'));
-% title(['\mu = ',s_mu,'   M_{e_{max}} = ',s_a])
-
+rotore.alphamap('Plot',{s;s.mu},'no')
+ax = gca;
+exportgraphics(ax,[folder,'Sds0.eps']);

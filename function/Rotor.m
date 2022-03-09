@@ -477,6 +477,7 @@ classdef Rotor
                 V_inf1=V_inf0;
             end
             [~,ir,c,s]= func(obj,V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
+            
             % mappa di alpha_e
             s = alphamap(obj,'Plot',{s;s.mu});
             % plot di alpha_e_max
