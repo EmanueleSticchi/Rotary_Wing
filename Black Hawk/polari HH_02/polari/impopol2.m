@@ -1,13 +1,14 @@
 %% Importa polari profilo HH_02
 clc; clear; close all
-ftsize = 10;
-m2tflag = 0;
+ftsize = 12;
+m2tflag = 1;
 d = ls('HU*');
 Relist = [1250;2500;5000;10000;500];
 formatspec={'-','--','-.',':'};
 formatspec2={'.','*','s','^'};
-
+folder = 'immagini_polari\';
 for i = 1:length(Relist)-1
+    name = sprintf('Re = %0.2e',Relist(i)*1e3);
     nomefile       = d(i,:);
     data           = importdata(nomefile,' ',12);
     aero.alpha     = data.data(:,1);
@@ -19,13 +20,13 @@ for i = 1:length(Relist)-1
     save(['Aero_HH02_Re',num2str(Relist(i)),'.mat'],'aero')
     
     figure(1)
-    plot(aero.alpha,aero.Cl,[formatspec{i},'k'],'DisplayName',['Re = ',num2str(Relist(i))])
+    plot(aero.alpha,aero.Cl,[formatspec{i},'k'],'DisplayName',name)
     xlabel('$\alpha$','Interpreter','Latex','FontSize',ftsize);
     ylabel('$C_l$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
     hold on
 
     figure(2)
-    plot(aero.alpha,aero.Cd,[formatspec{i},'k'],'DisplayName',['Re = ',num2str(Relist(i))])
+    plot(aero.alpha,aero.Cd,[formatspec{i},'k'],'DisplayName',name)
     hold on
     xlabel('$\alpha$','Interpreter','Latex','FontSize',ftsize);
     ylabel('$Cd$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
@@ -40,6 +41,7 @@ for i = 1:length(Relist)-1
     ylim([0 3*pi*(pi/180)])
 end
 for i = 1:3
+
     figure(i)
     grid on
     ax = gca;
@@ -52,7 +54,7 @@ for i = 1:3
     leg = legend();
     leg.AutoUpdate  = 'off';
     leg.NumColumns  = 1;
-    leg.Location    = 'best';
+    leg.Location    = 'north';
     leg.Orientation = 'vertical';
     leg.Interpreter = 'latex';
     leg.Color = 'none';
@@ -63,8 +65,8 @@ h_fig_2 = figure(2);
 h_fig_3 = figure(3);
 
 if m2tflag == 1
-        matlab2tikz('filename','cl_vs_alpha', 'figurehandle', h_fig_1);
-        matlab2tikz('filename','cd_vs_alpha', 'figurehandle', h_fig_2);
+        matlab2tikz('filename',[folder,'cl_vs_alpha'], 'figurehandle', h_fig_1);
+        matlab2tikz('filename',[folder,'cd_vs_alpha'], 'figurehandle', h_fig_2);
         matlab2tikz('filename','cl_alpha', 'figurehandle', h_fig_3);
     else
         disp('Non stai generando nessun file .tex!');

@@ -3,6 +3,8 @@ clc; clear; close all
 global aero
 m2tflag = 1;
 ftsize = 12;
+folder = 'Immagini\Distribuzioni_sulla_pala\';
+
 %% Data -------------------------------------------------------------------
 % geometry
 rotore   = Rotor();
@@ -27,6 +29,7 @@ rotore   = rotore.rot_vel('omega',convvel(726,'ft/s','m/s')/rotore.R);
 V_inf    = linspace(0,20,4);           % Climb speed [m/s]
 rotore.h = 0;                        % Assume density air = 1.23 Kg/m^3
 rotore   = rotore.ambient();         % compute ambient conditions
+Vtheta0_d= [10, 13, 16, 19];
 Vtheta0  = convang([10, 13, 16, 19]...
     ,'deg','rad');                   % root pitch (comando collettivo) in [1,19 deg]
 
@@ -58,8 +61,8 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(1))) ,'$^{\circ}$'],['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(2))) ,'$^{\circ}$'],...
-    ['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(3))) ,'$^{\circ}$'],['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(4))) ,'$^{\circ}$'],'Location','north');
+leg = legend(['$\theta_0 $ = ', num2str(Vtheta0_d(1)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(2)) ,'$^{\circ}$'],...
+    ['$\theta_0 $ = ', num2str(Vtheta0_d(3)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(4)) ,'$^{\circ}$'],'Location','north');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -79,8 +82,8 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(1))) ,'$^{\circ}$'],['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(2))) ,'$^{\circ}$'],...
-    ['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(3))) ,'$^{\circ}$'],['$\theta_0 $ = ', sprintf('%0.2f',(Vtheta0(4))) ,'$^{\circ}$'],'Location','north');
+leg = legend(['$\theta_0 $ = ', num2str(Vtheta0_d(1)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(2)) ,'$^{\circ}$'],...
+    ['$\theta_0 $ = ', num2str(Vtheta0_d(3)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(4)) ,'$^{\circ}$'],'Location','north');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -101,8 +104,11 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$\mu = $',sprintf('%0.2f',(s.mu(1))),'~'],['$\mu = $',sprintf('%0.2f',(s.mu(1))),'~'],['$\mu = $',sprintf('%0.2f',(s.mu(3))),'~'],...
-    ['$\mu = $',sprintf('%0.2f',(s.mu(4))),'~'],'Location','northwest');
+leg = legend(['$\mu = $',sprintf('%0.3f',(s.mu(1))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(2))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(3))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(4))),'~'],...
+             'Location','northwest');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -122,8 +128,11 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$\mu = $',sprintf('%0.2f',(s.mu(1))),'~'],['$\mu = $',sprintf('%0.2f',(s.mu(1))),'~'],['$\mu = $',sprintf('%0.2f',(s.mu(3))),'~'],...
-    ['$\mu = $',sprintf('%0.2f',(s.mu(4))),'~'],'Location','northwest');
+leg = legend(['$\mu = $',sprintf('%0.3f',(s.mu(1))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(2))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(3))),'~'],...
+             ['$\mu = $',sprintf('%0.3f',(s.mu(4))),'~'],...
+             'Location','northwest');
 leg.Orientation = 'vertical';
 leg.Interpreter = 'latex';
 leg.Color = 'none';
@@ -132,10 +141,10 @@ leg.Color = 'none';
 
 %% Salvataggio dei file '.tex'
 if m2tflag == 1
-        matlab2tikz('filename','hover_dTc', 'figurehandle', h_fig_hover_dTc);
-        matlab2tikz('filename','hover_dQc', 'figurehandle', h_fig_hover_dQc);
-        matlab2tikz('filename','sas_dTc', 'figurehandle', h_fig_sas_dTc);
-        matlab2tikz('filename','sas_dQc', 'figurehandle', h_fig_sas_dQc);
+        matlab2tikz('filename',[folder,'hover_dTc'], 'figurehandle', h_fig_hover_dTc);
+        matlab2tikz('filename',[folder,'hover_dQc'], 'figurehandle', h_fig_hover_dQc);
+        matlab2tikz('filename',[folder,'sas_dTc'], 'figurehandle', h_fig_sas_dTc);
+        matlab2tikz('filename',[folder,'sas_dQc'], 'figurehandle', h_fig_sas_dQc);
     else
         disp('Non stai generando nessun file .tex!');
 end
