@@ -1,7 +1,7 @@
 %% Analisi Rotore Principale HUGHES HELICOPTERS HH-02 AIRFOIL in SALITA ASSIALE
 clc; clear; close all
 global aero
-m2tflag = 0;
+m2tflag = 1;
 ftsize = 12;
 %% Data -------------------------------------------------------------------
 % geometry
@@ -142,27 +142,32 @@ end
 h_fig_1 = figure(1); 
 h_fig_2 = figure(2); 
 %% Calcoli con Prandtl correction
-formatspec={'-','--',':'};
+formatspec={':','-','--','.-'};
 options   = BEMTset_rotor();          
 options.P_correction = 'on';
 h_fig_hover_dTc_PvsB = figure;
 ik = 0;
 for i = 1:length(Vtheta0)
-    if mod(i,30) == 0
+    if mod(i,25) == 0
         ik = ik + 1;
-        
+        index(ik) = i; 
+        if ik ~= 1
         theta0 = Vtheta0(i);
         rotore = rotore.BEMT_salita(V_inf,theta0,options);
         s1     = rotore.Analisi_salita{i,1};
         s      = rotore.Analisi_salita{rotore.n_analisi_salita,1};
-        plot(s1.mu,s1.Tc,[formatspec{ik},'k']);
+      
+        plot(s.mu, ((s.Tc-s1.Tc)./s.Tc)*100 ,[formatspec{ik},'k']);
         hold on
-        plot(s.mu,s.Tc ,[formatspec{ik},'*k']);
+        end
     end
+    
 end
 
-xlabel('$\bar{r}$','Interpreter','Latex','FontSize',ftsize);
-ylabel('$T_c$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+
+xlabel('$\mu$','Interpreter','Latex','FontSize',ftsize);
+ylabel('$\Delta T_c \%$','Interpreter','Latex','FontSize',ftsize,'Rotation',90);
+% ylim([-10 10]);
 grid on
 ax = gca;
 ax.FontSmoothing = 'on';
@@ -171,11 +176,25 @@ ax.TickLength = [0.005 0.025];
 ax.TickDir = 'in';
 ax.XMinorTick = 'on'; 
 ax.YMinorTick = 'on';
-leg = legend(['$\theta_0 $ = ', num2str(Vtheta0_d(1)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(2)) ,'$^{\circ}$'],...
-    ['$\theta_0 $ = ', num2str(Vtheta0_d(3)) ,'$^{\circ}$'],['$\theta_0 $ = ', num2str(Vtheta0_d(4)) ,'$^{\circ}$'],'Location','north');
-leg.Orientation = 'vertical';
-leg.Interpreter = 'latex';
-leg.Color = 'none';
+leg = legend(['$\theta_0 $ = ', sprintf('%0.1f',Vtheta0_d(index(1))) ,'$^{\circ}$'],...
+            ['$\theta_0 $ = ', sprintf('%0.1f',Vtheta0_d(index(2))) ,'$^{\circ}$'],...
+            ['$\theta_0 $ = ', sprintf('%0.1f',Vtheta0_d(index(3))) ,'$^{\circ}$'],...
+            ['$\theta_0 $ = ', sprintf('%0.1f',Vtheta0_d(index(4))) ,'$^{\circ}$'],...             
+            'Location','north');
+        leg.Orientation = 'vertical';
+        leg.Interpreter = 'latex';
+        leg.Color = 'none';
+
+%% Salvataggio dei file '.tex'
+if m2tflag == 1
+%         matlab2tikz('filename','mu_Tc', 'figurehandle', h_fig_1);
+%         matlab2tikz('filename','mu_Qc', 'figurehandle', h_fig_2);
+%         matlab2tikz('filename','hover_polar', 'figurehandle', h_fig_3);
+%         matlab2tikz('filename','figure_of_merit', 'figurehandle', h_fig_4);
+        matlab2tikz('filename','h_fig_hover_dTc_PvsB', 'figurehandle', h_fig_hover_dTc_PvsB);
+    else
+        disp('Non stai generando nessun file .tex!');
+end
 
 %% Function ---------------------------------------------------------------
 function CL=CL_(alpha)
