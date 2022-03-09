@@ -1,7 +1,7 @@
 %%  Mappa per gli angoli per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 0;       %flag per il salvatagio delle immagini 
+pngflag = 1;       %flag per il salvatagio delle immagini 
 folderA = 'Immagini\Mappa_AoA\';
 folderM = 'Immagini\Mappa_Mach\';
 %% Data -------------------------------------------------------------------
@@ -9,8 +9,8 @@ rotore   = Rotor();
 % aerodynamics
 load('polari HH_02\polari\Aero_HH02_Re1250.mat')
 rotore.Cl_alpha = aero.Cl_a_mode*180/pi;
-rotore.Cl       = @(alpha) CL_(alpha);
-rotore.Cd       = @(alpha) CD_(alpha);
+% rotore.Cl       = @(alpha) CL_(alpha);
+% rotore.Cd       = @(alpha) CD_(alpha);
 
 % working conditions
 rotore   = rotore.rot_vel('omega',726/24);  % [rad/s]
@@ -34,38 +34,68 @@ rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 
 %%  Graphics --------------------------------------------------------------
+%                    Alpha
+% a colori
+s = alphamap(rotore,'Solve',{'T',W,V_inf,Chi,f,BEMTset_rotor()});
+idx = 1:length(V_inf);
+salva('AoA',folderA,idx,pngflag)
 
-alphamap(rotore,'Solve',{'T',W,V_inf,Chi,f,BEMTset_rotor()});
+% non colori
+alphamap(rotore,'Plot',{s;s.mu},'no');
+idx = idx + length(V_inf);
+salva('AoA_nc',folderA,idx,pngflag)
+
+
+%                                 Mach
+% colori
+MachMap(rotore,'Plot',{s;s.mu});
+idx = idx + length(V_inf);
+salva('Mach',folderM,idx,pngflag)
+
+% non colori
+MachMap(rotore,'Plot',{s;s.mu},'no');
+idx = idx + length(V_inf);
+salva('Mach_nc',folderM,idx,pngflag)
+
+                            % Mach con freccia
+                            
+Freccia = zeros(rotore.n_r,1);
+Freccia(rotore.r_bar > 0.97) = convang(45,'deg','rad');
+for i =1:rotore.n_r
+    s.Mach_e(i,:,:) = s.Mach_e(i,:,:)*cos(Freccia(i));
+end
+% non a colori
+MachMap(rotore,'Plot',{s;s.mu},'no');
+idx = idx + length(V_inf);
+salva('Mach_nc_F',folderM,idx,pngflag)
+
+% colori
+MachMap(rotore,'Plot',{s;s.mu});
+idx = idx + length(V_inf);
+salva('Mach_F',folderM,idx,pngflag)
+
+%% PLot rotore con freccia 
+rotore.LAMBDA = Freccia;
+data=importdata('polari HH_02\HH_02.dat');
+x=data.data(:,1);
+z=data.data(:,2);
+rotore.Model3D(x,z)
+
+
+
+%% Function
+function salva(prename,folder,idx,pngflag)
 if pngflag == 1
     counter = 0;
-    for i = 1:length(V_inf)
+    for i = idx(1):idx(end)
         counter = counter + 1;
         figure(i)
-        FileName = sprintf('AoA%d.eps', counter);
+        FileName = sprintf([prename,'%d.eps'], counter);
         ax = gca;
-        exportgraphics(ax,[folderA,FileName])
+        exportgraphics(ax,[folder,FileName])
     end
 else
     disp('Non stai generando nessun file .png!');
 end
 
-
-
-
-
-MachMap(rotore,'Solve',{'T',W,V_inf,Chi,f,BEMTset_rotor()});
-% il numero di mach supera il valore sonico per velocità minore della V_ne.
-% In teoria bisognerebbe tenere in conto dell'effetto della freccia
-if pngflag == 1
-    counter = 0;
-    for i = (length(V_inf)+1):(2*length(V_inf))
-        counter = counter + 1;
-        figure(i)
-        FileName = sprintf('Mach%d.eps', counter);
-        ax = gca;
-        exportgraphics(ax,[folderM,FileName])
-    end
-else
-    disp('Non stai generando nessun file .png!');
 end
-
