@@ -63,10 +63,6 @@ classdef Elica
             obj.A_D   = pi*obj.R*obj.R;
             obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
         end
-%         % calcolo della solidità
-%         function obj = sigma_(obj)
-%             obj.sigma=obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
-%         end
         % calcolo delle velocità di rotazione
         function obj = rot_vel(obj,valIN,val)
             switch valIN
@@ -361,6 +357,8 @@ classdef Elica
 %                 center
 %             end
             %--------------------------------------------------------------
+            r_star = obj.r_bar(obj.LAMBDA == 0);
+            r_star = r_star(end);       % individuo la stazione dove parte la freccia
             % plot the first blade
             xz=[x,z];
             for i=1:obj.n_r
@@ -371,9 +369,11 @@ classdef Elica
                     data_rot(j,:)=M*xz(j,:)';
                 end
                 % scale airfoil
-                x_rot=data_rot(:,1)*obj.c(i);
-                z_rot=data_rot(:,2)*obj.c(i);
-                X(:,i)=x_rot-mean(x_rot) - obj.r_bar(i)*obj.R*tan(obj.LAMBDA(i));
+                x_rot  = data_rot(:,1)*obj.c(i);
+                z_rot  = data_rot(:,2)*obj.c(i);
+                X(:,i) = x_rot - ...
+                        mean(x_rot) - ...
+                        (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i));
                 Z(:,i)=z_rot;
             end
 
