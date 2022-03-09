@@ -11,7 +11,7 @@ el.N=4;                         % Blade Number
 el.D=1.66;                         % Propeller diameter, [m]
 el.R=0.5*el.D;                  % Propeller radius, [m]
 % el.LAMBDA = zeros(el.n_r,1);
-el.LAMBDA = linspace(0,20*pi/180,el.n_r);
+% el.LAMBDA = linspace(0,20*pi/180,el.n_r);
 % Aerodinamici
 % Cl=@(alpha) interp1(data1,data2,alpha);
 % Cd=@(alpha) interp1(data1,data3,alpha);
@@ -22,9 +22,9 @@ el.Cd=@(alpha,r_bar,M,Re) CD_(alpha);
 % Operating condition
 el=el.rot_vel('RPM',2000);
 el=el.altitude(0);
-J=0.5;
+J=0;
 V_inf=J*el.n*el.D;
-T=1000;                        % Thrust, [N]
+T=810;                        % Thrust, [N]
 Cl=0.2*ones(size(el.r_bar));
 for i=1:el.n_r; [~,idx(i)]=min(abs(aero.Cl-Cl(i))); end
 alpha=aero.alpha(idx);
@@ -39,7 +39,7 @@ alpha1=10*pi/180;
 J=[0.2:0.05:2.5];
 options=BEMTset();
 options.P_correction='on';
-el=el.BEMT(J,alpha0,alpha1,options);
+el=el.BEMT(J,alpha0,options);
 %% PLotting 
 data=importdata('NACA 16-212.dat');
 x=data.data(:,1);
