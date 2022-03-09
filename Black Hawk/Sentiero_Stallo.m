@@ -30,6 +30,7 @@ I_MR     = 3800;
 I_MR     = convmass(I_MR,'slug','kg');
 I_MR     = convlength(convlength(I_MR,'ft','m'),'ft','m');
 rotore   = rotore.mass_prop('I',I_MR);        % Mom. di inerzia [Kg*m^2]
+rotore   = rotore.mass_prop('G',7);
 rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 
@@ -37,9 +38,9 @@ rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 VVec  = linspace(1,1.12,6);
 counter = 0;
-
+opt = BEMTset_rotor();
 for i = 1:length(VVec)
-    [s,r,c] = rotore.sentiero_stallo(alpha_max_2D,VVec(1:i),'T',W,Chi,f);
+    [s,r,c] = rotore.sentiero_stallo(alpha_max_2D,VVec(1:i),'T',W,Chi,f,opt,'no');
 end
 
 if pngflag == 1
@@ -56,6 +57,6 @@ if pngflag == 1
         disp('Non stai generando nessun file .png!');
 end
 
-rotore.alphamap('Plot',{s;s.mu},'no')
-ax = gca;
-exportgraphics(ax,[folder,'Sds0.eps']);
+% rotore.alphamap('Plot',{s;s.mu},'no')
+% ax = gca;
+% exportgraphics(ax,[folder,'Sds0.eps']);

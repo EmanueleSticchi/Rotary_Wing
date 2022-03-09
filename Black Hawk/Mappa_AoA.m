@@ -1,7 +1,7 @@
 %%  Mappa per gli angoli per il rotore principale
 clc; clear; close all
 global aero
-pngflag = 0;       %flag per il salvatagio delle immagini 
+pngflag = 1;       %flag per il salvatagio delle immagini 
 folderA = 'Immagini\Mappa_AoA\';
 folderM = 'Immagini\Mappa_Mach\';
 %% Data -------------------------------------------------------------------
@@ -30,6 +30,7 @@ I_MR     = 3800;
 I_MR     = convmass(I_MR,'slug','kg');
 I_MR     = convlength(convlength(I_MR,'ft','m'),'ft','m');
 rotore   = rotore.mass_prop('I',I_MR);        % Mom. di inerzia [Kg*m^2]
+rotore   = rotore.mass_prop('G',7);
 rotore.theta_t = convang(-9,'deg','rad');     % theta twist     [deg]
 
 

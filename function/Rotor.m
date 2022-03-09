@@ -417,7 +417,7 @@ classdef Rotor
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Sentiero di Stallo
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [s,ir,c] = sentiero_stallo(obj,alpha_max_2D,Vvec,valIN,ToTheta,chi,f,options)
+        function [s,ir,c] = sentiero_stallo(obj,alpha_max_2D,Vvec,valIN,ToTheta,chi,f,options,color)
             %------------------------------------------------------------------
             % Questa funzione consente di calcolare il sentiero di stallo
             % per assegnata spinta o callettamento di radice (comando
@@ -460,6 +460,7 @@ classdef Rotor
                 chi       {mustBeFinite}
                 f         {mustBePositive, mustBeFinite}
                 options = BEMTset_rotor();
+                color  = 'on'
             end
             %--------------------------------------------------------------
             V_inf0 = 0.1;
@@ -479,7 +480,7 @@ classdef Rotor
             [~,ir,c,s]= func(obj,V_inf1,alpha_max_2D,valIN,ToTheta,chi,f,options);
             
             % mappa di alpha_e
-            s = alphamap(obj,'Plot',{s;s.mu});
+            s = alphamap(obj,'Plot',{s;s.mu},color);
             % plot di alpha_e_max
             % Create polar data
             [r,psi] = meshgrid(obj.r_bar,s.options.Psi);
