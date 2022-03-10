@@ -153,11 +153,12 @@ classdef Elica
         % - idx,                  Indice della stazione radiale
         % - options,              Analisys options (see BEMTset)
         % -----------------------------------------------------------------    
-            
+            it = 0;
             f0=obj.func(alpha0,J,idx,options);
             if abs(f0)>options.toll
                 f1=obj.func(alpha1,J,idx,options);
                 while abs(f1)>options.toll
+                    it = it+1;
                     qk=(f1-f0)/(alpha1-alpha0);
                     alpha0=alpha1; f0=f1;
                     alpha1=alpha1-f1/qk;

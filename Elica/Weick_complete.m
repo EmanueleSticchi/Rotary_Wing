@@ -1,6 +1,6 @@
 %%  Analisi di un'elica Weick con la BEMT
 clc; clear; close all
-global aero
+global m_alpha m_Re m_Cl m_Cd
 %%  DATI ----------------------------------------------------------
 toll=1e-6;
 el=Elica();
@@ -26,15 +26,16 @@ el.theta = polyval(t_,el.r_bar); % Angolo di calettamento, [rad]
 el.LAMBDA = zeros(el.n_r,1);    % Angolo di freccia, [rad]
 
 % Di funzionamento
-theta_75 = convang(8,'deg','rad');
+theta_75 = convang(20,'deg','rad');
 [~,idx] = min(abs(el.r_bar - 0.75)); 
 el.theta = el.theta - el.theta(idx) + theta_75;  % setto il calettamento nominale al 75 %
-el=el.rot_vel('RPM',1200);   % valore medio di quelli nel paper
+el=el.rot_vel('RPM',1000);   % valore medio di quelli nel paper
 el=el.altitude(0);
-J=[0.05:0.05:1.3];
+J=[0.05:0.05:1.0];
 % Aerodinamici
-el.Cl = @(alpha,r_bar,M,Re) 2*pi*alpha;
-el.Cd = @(alpha,r_bar,M,Re) 0.01*alpha./alpha;
+load AeroHH02_complete.mat
+el.Cl=@(alpha,r_bar,M,Re) Cl_(alpha,M,Re);
+el.Cd=@(alpha,r_bar,M,Re) Cd_(alpha,M,Re);
 
 %% Analisi BEMT --------------------------------------------------------
 
@@ -129,3 +130,39 @@ figure
 plotta(el.r_bar,el.c,{'$ \bar{r}$';'c [m]'});
 figure
 plotta(el.r_bar,el.theta*180/pi,{'$ \bar{r}$';'$\theta$ [deg]'});
+
+%% Function ---------------------------------------------------------
+function Cl = Cl_(alpha,M,Re)
+% angoli in radianti
+    global m_alpha m_Re m_Cl
+    alpha     = convang(alpha,'rad','deg');
+    alpha_lim = [m_alpha(1,1),m_alpha(1,end)];
+    Re_lim    = [m_Re(1,1)   ,m_Re(end,1)];
+    
+    Cl = interp2(m_alpha,m_Re,m_Cl,...
+        min(max(alpha_lim(1),alpha),alpha_lim(2)),...
+        min(max(Re_lim(1),Re),Re_lim(2)));
+    if M <1
+        Cl = Cl.*sqrt(1-M.^2).^-1;
+    else
+        Cl = NaN;
+    end
+end
+
+function Cd = Cd_(alpha,M,Re)
+% angoli in radianti
+    global m_alpha m_Re m_Cd
+    alpha     = convang(alpha,'rad','deg');
+    alpha_lim = [m_alpha(1,1),m_alpha(1,end)];
+    Re_lim    = [m_Re(1,1)   ,m_Re(end,1)];
+    
+    Cd = interp2(m_alpha,m_Re,m_Cd,...
+        min(max(alpha_lim(1),alpha),alpha_lim(2)),...
+        min(max(Re_lim(1),Re),Re_lim(2)));
+    if M <1
+        k  = 2.5;
+        Cd = Cd/sqrt(1-M^k);
+    else
+        Cd = NaN;
+    end
+end

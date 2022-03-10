@@ -37,7 +37,6 @@ el=el.altitude(0);
 options=BEMTset();      options.P_correction='on'; 
 % alpha0 = [-2 -10 -10 -30 -50]*pi/180;
 alpha0 = -2*pi/180;
-alpha1 = [10 10 20 20 20]*pi/180;
 J_end  = [1.3 1.4 1.6 2 2.5];
 for tdx = 1:length(vtheta)
     theta_75 = vtheta(tdx);
@@ -45,7 +44,7 @@ for tdx = 1:length(vtheta)
     el.theta = el.theta - el.theta(idx) + theta_75;  % setto il calettamento nominale al 75 %
     J=[0.1:0.05:J_end(tdx)];
     %% Analisi BEMT --------------------------------------------------------       
-    el=el.BEMT(J,alpha0,alpha1(tdx),options);
+    el=el.BEMT(J,alpha0,options);
     
 end
 
