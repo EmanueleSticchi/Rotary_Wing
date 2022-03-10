@@ -192,7 +192,9 @@ classdef Rotor
                     s.Cd(i,j)    = obj.Cd(s.alpha(i,j));
                     % thrust and torque distributions
                     s.dTc(i,j)   = 0.5*obj.sigma*s.Cl(i,j)*(obj.r_bar(j)^2);
-                    s.dQc(i,j)   = 0.5*obj.sigma*(s.Cl(i,j)*s.phi(i,j) + s.Cd(i,j))*(obj.r_bar(j)^3);
+                    s.dQc_i(i,j) = 0.5*obj.sigma*(s.Cl(i,j)*s.phi(i,j))*(obj.r_bar(j)^3);
+                    s.dQc_0(i,j) = 0.5*obj.sigma*(s.Cd(i,j))*(obj.r_bar(j)^3);
+                    s.dQc(i,j)   = s.dQc_0(i,j) + s.dQc_i(i,j);
                 end
                 switch options.P_correction
                     case 'on'
@@ -200,8 +202,15 @@ classdef Rotor
                         options.B  = 1;
                 end
                 % thrust and torque
-                s.Tc(i) = obj.simpsons(s.dTc(i,:),obj.r_bar(1),options.B*obj.r_bar(end));
-                s.Qc(i) = obj.simpsons(s.dQc(i,:),obj.r_bar(1),obj.r_bar(end));
+                s.Tc(i)   = obj.simpsons(s.dTc(i,:),obj.r_bar(1),options.B*obj.r_bar(end));
+                s.Qc_i(i) = obj.simpsons(s.dQc_i(i,:),obj.r_bar(1),obj.r_bar(end));
+                s.Qc_0(i) = obj.simpsons(s.dQc_0(i,:),obj.r_bar(1),obj.r_bar(end));
+                s.Qc(i)   = s.Qc_0(i)+ s.Qc_i(i);
+                if s.Tc(i)>0
+                    s.k(i) = s.Qc_i(i)/(s.Tc(i)^(1.5)/sqrt(2));
+                else
+                    s.k(i) = NaN;
+                end
                 
             end
             s.mu     = mu;

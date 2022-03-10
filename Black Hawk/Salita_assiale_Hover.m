@@ -51,7 +51,7 @@ for i =1:length(Vtheta0)
     xlabel('\mu')
     ylabel('Q_c')
     hold on 
-
+    
     %% Figure of Merit
     Tc_hover(i) = s.Tc(s.mu == 0);
     Qc_hover(i) = s.Qc(s.mu == 0);
@@ -111,8 +111,20 @@ if m2tflag == 1
         disp('Non stai generando nessun file .tex!');
 end
 
+%% Plot k
+figure
+hold on
+for i= 1:length(Vtheta0)
+    s = rotore.Analisi_salita{i,1};
+    plot(s.mu,s.k)
+    mk(i) = mode(s.k);
+end
+grid on 
+xlabel('\mu')
+ylabel('k')
 
-
+figure 
+plot(Vtheta0,mk)
 
 
 %% Function ---------------------------------------------------------------
