@@ -122,10 +122,11 @@ classdef Elica
             % calcolo dell'angolo di Inflow
             phi=obj.theta(idx)-alpha;
             % calcolo dei coefficienti aerodinamici
-            lambda1= obj.Cl(alpha,obj.r_bar(idx),M,Re)*cos(phi)...
-                    -obj.Cd(alpha,obj.r_bar(idx),M,Re)*sin(phi);
-            lambda2=obj.Cl(alpha,obj.r_bar(idx),M,Re)*sin(phi)...
-                    +obj.Cd(alpha,obj.r_bar(idx),M,Re)*cos(phi);
+            Cl = obj.Cl(alpha,obj.r_bar(idx),M,Re);
+            Cd = obj.Cd(alpha,obj.r_bar(idx),M,Re);
+            
+            lambda1 = Cl*cos(phi) - Cd*sin(phi);
+            lambda2 = Cl*sin(phi) + Cd*cos(phi);
             % calcolo delle induzioni
             ka  = 0.25*obj.sigma(idx)*lambda1/sin(phi)^2;
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
@@ -187,8 +188,6 @@ classdef Elica
             options = BEMTset();
         end
         % -----------------------------------------------------------------
-        % settare alpha in modo tale che il valore di tentativo cambia ogni
-        % volta
         alpha  = alpha0;
             for jdx=1:length(J)
                 if jdx>1
@@ -215,9 +214,10 @@ classdef Elica
                     s.eta_e(jdx,idx)=(1-ap)*lambda1*lambda2*tan(phi)/(1+a); 
                 end 
                 if isequal(options.P_correction,'on')
-                    s.dCt_dr_bar(jdx,:)=s.dCt_dr_bar(jdx,:)'.*obj.F_(J(jdx));
-                    s.dCq_dr_bar(jdx,:)=s.dCq_dr_bar(jdx,:)'.*obj.F_(J(jdx));
-                    s.dCp_dr_bar(jdx,:)=s.dCp_dr_bar(jdx,:)'.*obj.F_(J(jdx));
+                    F                   = obj.F_(J(jdx)/pi);
+                    s.dCt_dr_bar(jdx,:) = s.dCt_dr_bar(jdx,:)'.*F;
+                    s.dCq_dr_bar(jdx,:) = s.dCq_dr_bar(jdx,:)'.*F;
+                    s.dCp_dr_bar(jdx,:) = s.dCp_dr_bar(jdx,:)'.*F;
                 end
                 s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),obj.r_bar(1),obj.r_bar(end));
                 if isequal(options.Hub_correction,'on')
@@ -319,7 +319,7 @@ classdef Elica
                 Ve  =sqrt((obj.omega*obj.r_bar*obj.R).^2.*(1-ap).^2+V_inf^2*(1+a).^2);
             end
             Gamma = obj.omega*(obj.r_bar*obj.R).^2.*(4*pi*obj.r_bar.^2.*ap)...
-                .*obj.F_(V_inf/obj.n/obj.D);
+                .*obj.F_(V_inf/obj.omega/obj.R);
             obj.sigma = 1/(pi*obj.R)*(Ve.*obj.r_bar.*Cl_id).^-1.*Gamma;
             obj.c=(2*pi)*obj.sigma.*obj.r_bar*obj.R/obj.N;
             obj.theta=phi+alpha_id;
