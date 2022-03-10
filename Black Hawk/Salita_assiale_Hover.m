@@ -118,14 +118,23 @@ for i= 1:length(Vtheta0)
     s = rotore.Analisi_salita{i,1};
     plot(s.mu,s.k)
     mk(i) = mode(s.k);
+    k_hover(i) = s.k(1);
 end
 grid on 
 xlabel('\mu')
 ylabel('k')
 
 figure 
-plot(Vtheta0,mk)
+plot(Vtheta0*180/pi,mk)
+grid on 
+xlabel('\mu')
+ylabel('k')
 
+figure 
+plot(Tc_hover,k_hover,'k')
+grid on 
+xlabel('T_c')
+ylabel('k')
 
 %% Function ---------------------------------------------------------------
 function CL=CL_(alpha)
