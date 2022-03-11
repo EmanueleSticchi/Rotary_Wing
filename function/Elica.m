@@ -128,7 +128,7 @@ classdef Elica
             lambda1 = Cl*cos(phi) - Cd*sin(phi);
             lambda2 = Cl*sin(phi) + Cd*cos(phi);
             % calcolo delle induzioni
-            ka  = 0.25*obj.sigma(idx)*lambda1/sin(phi)^2;
+            ka  = 0.25*obj.sigma(idx)*lambda1/(sin(phi)^2);
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
 
             ap = kap/(1+kap);
@@ -198,21 +198,27 @@ classdef Elica
                     alpha1 = 1.3*alpha;
                     [~,~,alpha,phi,a,ap,lambda1,lambda2,M,Re]=BEMT_rJ_fix(obj,...
                                            alpha,alpha1,J(jdx),idx,options);
-                    s.alpha(jdx,idx)=alpha;
-                    s.phi(jdx,idx)=phi;
-                    s.a(jdx,idx)=a;
-                    s.ap(jdx,idx)=ap;
-                    s.lambda1(jdx,idx)=lambda1;
-                    s.lambda2(jdx,idx)=lambda2;
-                    s.Mach(jdx,idx) = M;
-                    s.Re(jdx,idx) = Re;
+                    s.alpha(jdx,idx)   = alpha;
+                    s.phi(jdx,idx)     = phi;
+                    s.a(jdx,idx)       = a;
+                    s.ap(jdx,idx)      = ap;
+                    s.lambda1(jdx,idx) = lambda1;
+                    s.lambda2(jdx,idx) = lambda2;
+                    s.Mach(jdx,idx)    = M;
+                    s.Re(jdx,idx)      = Re;
+                    
                     % calcolo delle prestazioni
-                    s.dCt_dr_bar(jdx,idx) = pi^3/4*obj.sigma(idx)*...
-                        lambda1*obj.r_bar(idx)^3*(1-ap)^2/cos(phi)^2;
-                    s.dCq_dr_bar(jdx,idx) = pi^3/8*obj.sigma(idx)*...
-                        lambda2*obj.r_bar(idx)^4*(1-ap)^2/cos(phi)^2;                   
+                    s.dCt_dr_bar(jdx,idx) = pi/4*lambda1*obj.sigma(idx)*obj.r_bar(idx)*...
+                        ((J(jdx)*(1+a))^2 + (pi*obj.r_bar(idx)*(1-ap))^2);
+                    s.dCq_dr_bar(jdx,idx) = pi/8*lambda2*obj.sigma(idx)*obj.r_bar(idx)^2*...
+                        ((J(jdx)*(1+a))^2 + (pi*obj.r_bar(idx)*(1-ap))^2);
+%                     s.dCt_dr_bar(jdx,idx) = pi^3/4*obj.sigma(idx)*...
+%                         lambda1*obj.r_bar(idx)^3*(1-ap)^2/(cos(phi)^2);
+%                     s.dCq_dr_bar(jdx,idx) = pi^3/8*obj.sigma(idx)*...
+%                         lambda2*obj.r_bar(idx)^4*(1-ap)^2/(cos(phi)^2);                   
                     s.dCp_dr_bar(jdx,idx) = 2*pi*s.dCq_dr_bar(jdx,idx);
-                    s.eta_e(jdx,idx)=(1-ap)*lambda1*lambda2*tan(phi)/(1+a); 
+                    s.eta_e(jdx,idx)      = J(jdx)/(pi*obj.r_bar(idx))*lambda1/lambda2;
+%                     s.eta_e(jdx,idx)      = (1-ap)/(1+a)*lambda1/lambda2*tan(phi); 
                 end 
                 if isequal(options.P_correction,'on')
                     F                   = obj.F_(J(jdx)/pi);
@@ -222,7 +228,7 @@ classdef Elica
                 end
                 s.CT(jdx,1)=obj.simpsons(s.dCt_dr_bar(jdx,:),obj.r_bar(1),obj.r_bar(end));
                 if isequal(options.Hub_correction,'on')
-                    s.DCT(jdx,1) = -pi/8*(obj.r_bar(1)/obj.R)^2*...
+                    s.DCT(jdx,1) = -pi/8*(obj.r_bar(1))^2*...
                                 J(jdx)^2*options.Cd_hub;
                     s.CT(jdx,1)  = s.CT(jdx,1) + s.DCT(jdx,1);
                 end
