@@ -82,7 +82,19 @@ x=data.data(:,1);
 z=data.data(:,2);
 rotore.Model3D(x,z,20*pi/180)
 
+
 idx = idx(end) + [1,2];
+f = figure(idx(1));
+ax = gca;
+view(ax,[-90 90]); 
+f.Units = 'normalized';
+f.Position = [0.13,0.11,0.775,0.815];
+for i = 1:2
+    figure(idx(i))
+    xlabel('X [m]')
+    ylabel('Y [m]')
+end
+
 salva('rotore','Immagini\rotore\',idx,pngflag)
 
 
