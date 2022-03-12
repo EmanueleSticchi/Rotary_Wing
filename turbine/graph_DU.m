@@ -26,11 +26,14 @@ name = {'$C_l$';'$C_d$';'$\frac{C_l}{C_d}$'};
 for i =1 :3
     figure
     plot(alpha,q{i,1},'k')
+    hold on
+    plot(alpha(168:856),q{i,1}(168:856),'.k')
     xlabel('$\alpha$ [deg]',...
         'Interpreter','latex','FontSize',12)
     ylabel(name{i,1},...
         'Interpreter','latex','Rotation',90,...
         'FontSize',12)
+    
     grid on
 end
 count = 0;
