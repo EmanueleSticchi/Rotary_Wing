@@ -386,15 +386,16 @@ classdef Elica
 
             Y=obj.r_bar'.*obj.R;
             Y=repmat(Y,length(x),1);
-            light('Style','local','Position',[1 -1 0]);
             % plot di una sola pala
             figure
+            light('Style','local','Position',[1 -1 0]);
             s=surf(X,Y,Z,'FaceColor',[0.65 0.65 0.65],'FaceLighting',...
                 'gouraud','EdgeColor','none');
             daspect([1 1 1])
             camlight right 
             % material dull
-            
+            xlabel('X [m]')
+            ylabel('Y [m]')
             % plot di tutte le pale
             figure
             light('Style','local','Position',[1 -1 0]);
@@ -429,7 +430,9 @@ classdef Elica
             Zh = repmat(zh,length(xh),1);  
             surf(Xh,Yh,Zh,'FaceColor','k')
             daspect([1 1 1])
-
+            
+            xlabel('X [m]')
+            ylabel('Y [m]')
 %             % Hub(parabolic)
 %             m=100;
 %             % create Hub disc
