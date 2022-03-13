@@ -8,7 +8,7 @@ el=Elica();
 % Geometrici
 % interpolazione dei dati effettivi
 r    = convlength([10,12,18,24,30,36,42,48,54,60],'in','m');
-rb   = r/r(end);
+rb   = r/convlength(63,'in','m');
 c    = convlength([6.97,...     % Corda delle sezioni, [m]
     7.36,8.08,8.41,8.43,8.17,7.53,6.53,5.21,3.74],'in','m');
 theta = pi/180*....             % Angolo di calettamento, [rad]
