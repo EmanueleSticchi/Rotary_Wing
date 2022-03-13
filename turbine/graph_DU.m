@@ -20,7 +20,6 @@ data  = importdata('DU84-132V3_T1_Re1.000_M0.00_N9.0_360_M.dat',' ',14);
 alpha = data.data(:,1);
 Cl    = data.data(:,2);
 Cd    = data.data(:,3);
-
 q = {Cl;Cd;Cl.*Cd.^-1};
 name = {'$C_l$';'$C_d$';'$\frac{C_l}{C_d}$'};
 for i =1 :3
