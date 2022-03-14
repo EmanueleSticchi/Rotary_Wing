@@ -1,6 +1,7 @@
 %%  Analisi di un'elica Weick con la BEMT
 clc; clear; close all
 global m_alpha m_Re m_Cl m_Cd
+load CC_experimential_Weick.mat
 %%  DATI ----------------------------------------------------------
 toll=1e-6;
 el=Elica();
@@ -26,20 +27,20 @@ el.theta = polyval(t_,el.r_bar); % Angolo di calettamento, [rad]
 el.LAMBDA = zeros(el.n_r,1);    % Angolo di freccia, [rad]
 
 % Di funzionamento
-theta_75 = convang(20,'deg','rad');
+theta_75 = convang(8.5,'deg','rad');
 [~,idx] = min(abs(el.r_bar - 0.75)); 
 el.theta = el.theta - el.theta(idx) + theta_75;  % setto il calettamento nominale al 75 %
 el=el.rot_vel('RPM',1000);   % valore medio di quelli nel paper
 el=el.altitude(0);
 J=[0.05:0.05:1.0];
 % Aerodinamici
-load AeroHH02_complete.mat
+load AeroVR7_complete.mat
 el.Cl=@(alpha,r_bar,M,Re) Cl_(alpha,M,Re);
 el.Cd=@(alpha,r_bar,M,Re) Cd_(alpha,M,Re);
 
 %% Analisi BEMT --------------------------------------------------------
 
-alpha0=2*pi/180;
+alpha0=-2*pi/180;
 options=BEMTset();      options.P_correction='on';
 el=el.BEMT(J,alpha0,options);
 
@@ -119,19 +120,55 @@ for i =4:15
     xline(0);
 end
 
-
-%% MODEL 3D
-data=importdata('NACA 16-212.dat');
-x=data.data(:,1);
-z=data.data(:,2);
-el.Model3D(x,z)
+%% Plot comparison with experimental data
+n_num = 'Numerico';     n_exp = 'Sperimentale';
+figure
+plotta(J,s.CT,...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$C_T$ = $\frac{T}{\rho n^2 D^4}$'},...
+    '-k',n_num)
+plotta(CC_exp.J,CC_exp.Ct,...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$C_T$ = $\frac{T}{\rho n^2 D^4}$'},...
+    '--k',n_exp)
+yline(0);
 
 figure
-plotta(el.r_bar,el.c,{'$ \bar{r}$';'c [m]'});
-figure
-plotta(el.r_bar,el.theta*180/pi,{'$ \bar{r}$';'$\theta$ [deg]'});
+plotta(J,s.CP,...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$C_P$ = $\frac{P}{\rho n^3 D^5}$'},...
+    '-k',n_num)
+plotta(CC_exp.J,CC_exp.Cp,...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$C_P$ = $\frac{P}{\rho n^3 D^5}$'},...
+    '--k',n_exp)
+yline(0);
+
+figure(3)
+log=s.CT>=0;
+plotta(J(log),s.eta(log,1),...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$\eta$ = $\frac{TV_{\infty}}{P}$'},...
+    '-k',n_num)
+plotta(CC_exp.J,CC_exp.eta,...
+    {'J = $ \frac{V_{\infty}}{nD}$';'$\eta$ = $\frac{TV_{\infty}}{P}$'},...
+    '--k',n_exp)
+yline(0);
+
+
+if flag ==1
+    save(15:17 ,'car_comp','immagini/Weick_2pi/caratteristiche/');
+end
+
+% % MODEL 3D
+% data=importdata('NACA 16-212.dat');
+% x=data.data(:,1);
+% z=data.data(:,2);
+% el.Model3D(x,z)
+% 
+% figure
+% plotta(el.r_bar,el.c,{'$ \bar{r}$';'c [m]'});
+% figure
+% plotta(el.r_bar,el.theta*180/pi,{'$ \bar{r}$';'$\theta$ [deg]'});
 
 %% Function ---------------------------------------------------------
+%% Function
+
 function Cl = Cl_(alpha,M,Re)
 % angoli in radianti
     global m_alpha m_Re m_Cl
@@ -160,8 +197,8 @@ function Cd = Cd_(alpha,M,Re)
         min(max(alpha_lim(1),alpha),alpha_lim(2)),...
         min(max(Re_lim(1),Re),Re_lim(2)));
     if M <1
-        k  = 2.5;
-        Cd = Cd/sqrt(1-M^k);
+        k  = 6; k2 = 0.7;
+        Cd = (Cd-k2) + k2*(1+0.25*M^k);
     else
         Cd = NaN;
     end

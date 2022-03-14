@@ -2,7 +2,7 @@
 clc; clear; close all
 global m_alpha m_Re m_Cl m_Cd
 
-filename = ls('Ae*');
+filename = ls('Ae*Re*');
 Relist   = [10000;1250;2500;500;5000;7500]*1e3;
 Re       = sort(Relist);
 ord      = [6;2;3;1;4;5];
@@ -31,7 +31,7 @@ end
 plot(M,Cd)
 axis equal
 
-save('AeroVR7_complete.mat','m_alpha','m_Re','m_Cl','m_Cd')
+% save('AeroVR7_complete.mat','m_alpha','m_Re','m_Cl','m_Cd')
 
 
 %% Function
@@ -64,8 +64,8 @@ function Cd = Cd_(alpha,M,Re)
         min(max(alpha_lim(1),alpha),alpha_lim(2)),...
         min(max(Re_lim(1),Re),Re_lim(2)));
     if M <1
-        k  = 2.5;
-        Cd = Cd/sqrt(1-M^k);
+        k  = 6; k2 = 0.7;
+        Cd = (Cd-k2) + k2*(1+0.25*M^k);
     else
         Cd = NaN;
     end
