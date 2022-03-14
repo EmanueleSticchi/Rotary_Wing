@@ -3,7 +3,7 @@ clc; clear; close all
 flag = 1;
 d = ls('BO*');
 Relist = [500;1250;10000;2500;5000;7500];
-ord    = [2;3;5;6];
+ord    = [1;2;4;5];
 formatspec = {'-k';'--k';'-.k';':k'};
 for k =1:4
     i = ord(k);
