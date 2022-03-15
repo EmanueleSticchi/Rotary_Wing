@@ -61,7 +61,9 @@ classdef Elica
         function obj = derived_properties(obj)
             obj.D     = obj.R*2;
             obj.A_D   = pi*obj.R*obj.R;
-            obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+            if ~isempty(obj.c)
+                obj.sigma = obj.N/(2*pi)*obj.c.*obj.r_bar.^-1*obj.R;
+            end
         end
         % calcolo delle velocità di rotazione
         function obj = rot_vel(obj,valIN,val)
@@ -116,7 +118,7 @@ classdef Elica
         % - options          Analisys options (see BEMTset)
         % -----------------------------------------------------------------
             V_inf = J *obj.n*obj.D;
-            V_eff = sqrt(V_inf^2 + (obj.omega*obj.r_bar(idx)*obj.R)^2)*cos(obj.LAMBDA(idx)); % trascuro a e a'
+            V_eff = sqrt(V_inf^2 + (obj.omega*obj.r_bar(idx)*obj.R)^2)*cos(obj.LAMBDA(idx)); % trascuro a e a' rispetto ad 1
             M  = V_eff/obj.sound_vel;
             Re = V_eff * obj.rho * obj.c(idx)/ obj.mu_visc;
             % calcolo dell'angolo di Inflow
@@ -128,7 +130,8 @@ classdef Elica
             lambda1 = Cl*cos(phi) - Cd*sin(phi);
             lambda2 = Cl*sin(phi) + Cd*cos(phi);
             % calcolo delle induzioni
-            ka  = 0.25*obj.sigma(idx)*lambda1/(sin(phi)^2);
+%             ka  = 0.25*obj.sigma(idx)*lambda1/(sin(phi)^2);
+            ka  = 0.25*obj.sigma(idx)*lambda1/(1- cos(phi)^2);
             kap = 0.5*obj.sigma(idx)*lambda2/sin(2*phi);
 
             ap = kap/(1+kap);
@@ -313,7 +316,7 @@ classdef Elica
             [~,obj]=obj.funcDes(w01,V_inf,Cl,alpha,CT,options);
         end
         function [f,obj]=funcDes(obj,w0,V_inf,Cl_id,alpha_id,CT,options)
-            phi = atan((V_inf+w0)*(obj.omega*obj.r_bar*obj.R).^-1);
+            phi = atan2((V_inf+w0),(obj.omega*obj.r_bar*obj.R));
             if V_inf< 1e-4
                 OR_wo=obj.omega*obj.r_bar*obj.R/w0;
                 w=w0*(1+OR_wo.^-2).^-1;

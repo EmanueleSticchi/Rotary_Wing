@@ -9,6 +9,16 @@ ord      = [6;2;3;1;4;5];
 aerod    = cell(length(Re),2);
 for i =1 : size(filename)
     load(filename(i,:))
+    if aero.alpha(1) > -30
+        aero.alpha = [-30;aero.alpha];
+        aero.Cl    = [aero.Cl(1);aero.Cl];
+        aero.Cd    = [aero.Cd(1);aero.Cd];
+    end
+    if aero.alpha(end) < 30
+        aero.alpha = [aero.alpha;30];
+        aero.Cl    = [aero.Cl;aero.Cl(end)];
+        aero.Cd    = [aero.Cd;aero.Cd(end)];
+    end
     aerod{ord(i),1} = aero; 
     aerod{ord(i),2} = Relist(i);
 end
