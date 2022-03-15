@@ -26,10 +26,11 @@ figure
 plotta(el.r_bar,el.c,{'$ \bar{r}$';'c [m]'});
 figure
 plotta(el.r_bar,el.theta*180/pi,{'$ \bar{r}$';'$\theta$ [deg]'});
-
+figure
+plotta(el.r_bar,el.LAMBDA*180/pi,{'$ \bar{r}$';'$\Lambda$ [deg]'})
 %% Save
 count = 0;
-for i =1:6
+for i =1:7
     count = count + 1;
     figure(i)
     FileName = sprintf(['geom','%d.eps'], count);
