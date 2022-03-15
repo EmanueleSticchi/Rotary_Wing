@@ -372,6 +372,7 @@ classdef Elica
             % plot the first blade
             xz=[x,z];
             for i=1:obj.n_r
+                
                 M=R2(obj.theta(i));
                 M=M([1 3],[1 3]);
                 % set pitch
@@ -382,9 +383,9 @@ classdef Elica
                 x_rot  = data_rot(:,1)*obj.c(i);
                 z_rot  = data_rot(:,2)*obj.c(i);
                 X(:,i) = x_rot - ...
-                        mean(x_rot) - ...
-                        (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i));
-                Z(:,i)=z_rot;
+                        mean(x_rot) -...
+                        (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i))*cos(obj.theta(i));
+                Z(:,i)=z_rot - (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i))*sin(obj.theta(i));
             end
 
             Y=obj.r_bar'.*obj.R;
