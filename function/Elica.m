@@ -382,8 +382,7 @@ classdef Elica
                 % scale airfoil
                 x_rot  = data_rot(:,1)*obj.c(i);
                 z_rot  = data_rot(:,2)*obj.c(i);
-                X(:,i) = x_rot - ...
-                        mean(x_rot) -...
+                X(:,i) = x_rot - ... % mean(x_rot) -...
                         (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i))*cos(obj.theta(i));
                 Z(:,i)=z_rot - (obj.r_bar(i) - r_star)*obj.R*tan(obj.LAMBDA(i))*sin(obj.theta(i));
             end

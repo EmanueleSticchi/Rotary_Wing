@@ -1,7 +1,7 @@
 %% Progetto Elica Lenta per il velivolo Tecnam P92
 % assumiamo profilo alare Boeing Vertol VR7
 clc; clear; close all
-flag = 1;
+flag = 0;
 global m_alpha m_Re m_Cl m_Cd
 
 %% DATI -------------------------------------------------------------------
@@ -68,13 +68,15 @@ CL = W/(0.5*el.rho*Vc^2*S);
 CD = CD0 +CL^2/(pi*AR*e);
 T  = 0.5*el.rho*Vc^2*S*CD;
 % CT = T/(el.rho*el.n^2*(2*el.R)^4);
-J_des  = Vc/(el.n*2*el.R);     
+J_des  = Vc/(el.n*2*el.R);
 options=BEMTset();  
 options.P_correction   = 'on';
 options.Hub_correction = 'on';
 options.Cd_hub         = 0.5;
 options.Design         = 'on';
-options.Freccia_opt    = 'off';
+options.Freccia_opt    = 'on';
+options.M_lim          = 0.6;
+
 
 el = el.Design(J_des,T,Cl_id,alpha_id,options);
 
